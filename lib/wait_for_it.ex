@@ -1,18 +1,32 @@
 defmodule WaitForIt do
   @moduledoc """
-  Documentation for WaitForIt.
+  Various ways to wait for things to happen.
   """
 
-  @doc """
-  Hello world.
+  alias WaitForIt.Helpers
 
-  ## Examples
+  defmacro wait(expression, opts \\ []) do
+    frequency = Keyword.get(opts, :frequency, 100)
+    timeout = Keyword.get(opts, :timeout, 5_000)
+    condition_var = Keyword.get(opts, :signal)
 
-      iex> WaitForIt.hello
-      :world
+    if condition_var do
+      quote do
+        require WaitForIt.Helpers
+        _ = Helpers.condition_var_wait(unquote(expression), unquote(condition_var), unquote(timeout))
+      end
+    else
+      quote do
+        require WaitForIt.Helpers
+        Helpers.polling_wait(unquote(expression), unquote(frequency), unquote(timeout))
+      end
+    end
+  end
 
-  """
-  def hello do
-    :world
+  defmacro signal(condition_var) when is_atom(condition_var) do
+    quote do
+      require WaitForIt.Helpers
+      Helpers.condition_var_signal(unquote(condition_var))
+    end
   end
 end
