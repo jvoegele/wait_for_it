@@ -22,6 +22,20 @@ defmodule WaitForItTest do
     Agent.update(counter_pid, fn(n) -> n + 1 end)
   end
 
+  defp increment_task(counter_pid, opts \\ []) do
+    sleep_time = Keyword.get(opts, :sleep_time, 0)
+    max = Keyword.get(opts, :max, 1_000_000)
+    condition_var = Keyword.get(opts, :signal)
+
+    Task.async fn ->
+      for _ <- 1..max do
+        increment_counter(counter_pid)
+        if condition_var, do: signal(condition_var)
+        Process.sleep(sleep_time)
+      end
+    end
+  end
+
   describe "wait/2" do
     test "waits for expression to be truthy" do
       {:ok, true} = wait increment_counter() > 2
@@ -41,12 +55,7 @@ defmodule WaitForItTest do
 
     test "accepts a :signal option" do
       {:ok, counter} = init_counter(0)
-      {:ok, _task} = Task.start_link(fn ->
-        Enum.each(1..1000, fn(_) ->
-          increment_counter(counter)
-          signal(:counter_wait)
-        end)
-      end)
+      _task = increment_task(counter, max: 1000, signal: :counter_wait)
       assert {:ok, true} == wait get_counter(counter) > 99, signal: :counter_wait
       assert get_counter(counter) > 99
     end
@@ -58,8 +67,94 @@ defmodule WaitForItTest do
   end
 
   describe "case_wait/2" do
+    test "waits for expression to match one of the given patterns" do
+      {:ok, counter} = init_counter(0)
+      _task = increment_task(counter, sleep_time: 1)
+      result = case_wait get_counter(counter) do
+        value when value >= 10 -> value
+      end
+      assert result >= 10
+    end
+
+    test "accepts a :frequency option" do
+      case_wait increment_counter(), frequency: 1 do
+        5 -> 5
+      end
+      assert 5 == Process.get(:counter)
+    end
+
+    test "accepts a :timeout option" do
+      timeout = 10
+      {:timeout, ^timeout} = case_wait increment_counter(), timeout: timeout, frequency: 1 do
+          11 -> 11
+        end
+      assert Process.get(:counter) < timeout
+    end
+
+    test "accepts a :signal option" do
+      {:ok, counter} = init_counter(0)
+      _task = increment_task(counter, max: 1000, signal: :counter_wait)
+      count = case_wait get_counter(counter), signal: :counter_wait do
+        value when value > 99 -> value
+      end
+      assert count > 99
+      assert get_counter(counter) >= count
+    end
+
+    test "times out if signal not received" do
+      {:ok, counter} = init_counter(0)
+      timeout = 10
+      result = case_wait get_counter(counter), signal: :counter_wait, timeout: 10 do
+        100 -> 100
+      end
+      assert result == {:timeout, timeout}
+    end
   end
 
   describe "cond_wait/1" do
+    test "waits for one of the given expressions to be truthy" do
+      :ok = cond_wait do
+        2 + 2 == 5 -> 1984
+        :answer == 42 -> :question
+        increment_counter() == 3 -> :ok
+      end
+      assert 3 == Process.get(:counter)
+    end
+
+    test "accepts a :frequency option" do
+      :ok = cond_wait frequency: 1 do
+        5 == increment_counter() -> :ok
+        2 + 2 == 5 -> 1984
+        :answer == 42 -> :question
+      end
+      assert 5 == Process.get(:counter)
+    end
+
+    test "accepts a :timeout option" do
+      timeout = 10
+      {:timeout, ^timeout} = cond_wait timeout: timeout, frequency: 1 do
+        11 == increment_counter() -> :ok
+      end
+      assert Process.get(:counter) < timeout
+    end
+
+    test "accepts a :signal option" do
+      {:ok, counter} = init_counter(0)
+      _task = increment_task(counter, max: 1000, signal: :counter_wait)
+      result = cond_wait signal: :counter_wait do
+        get_counter(counter) > 99 -> :century
+      end
+      assert result == :century
+      assert get_counter(counter) > 99
+    end
+
+    test "times out if signal not received" do
+      {:ok, counter} = init_counter(0)
+      timeout = 10
+      result = cond_wait signal: :counter_wait, timeout: 10 do
+        get_counter(counter) > 99 -> :will_never_get_here
+      end
+      assert result == {:timeout, timeout}
+    end
   end
 end
