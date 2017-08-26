@@ -1,4 +1,6 @@
 defmodule WaitForIt.Helpers do
+  @moduledoc false
+
   alias __MODULE__
   alias WaitForIt.ConditionVariable
 
