@@ -1,7 +1,5 @@
 defmodule WaitForItTest do
   use ExUnit.Case
-  doctest WaitForIt
-
   import WaitForIt
 
   defp increment_counter do
@@ -122,8 +120,8 @@ defmodule WaitForItTest do
     end
 
     test "accepts a :frequency option" do
-      :ok = cond_wait frequency: 1 do
-        5 == increment_counter() -> :ok
+      5 = cond_wait frequency: 1 do
+        (count = increment_counter; count > 4) -> count
         2 + 2 == 5 -> 1984
         :answer == 42 -> :question
       end

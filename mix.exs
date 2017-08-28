@@ -4,9 +4,12 @@ defmodule WaitForIt.Mixfile do
   def project do
     [
       app: :wait_for_it,
-      version: "0.1.0",
+      version: "1.0.0",
+      description: "Elixir library for waiting for things to happen",
+      source_url: "https://github.com/jvoegele/wait_for_it",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
+      package: package(),
       deps: deps()
     ]
   end
@@ -21,8 +24,17 @@ defmodule WaitForIt.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+      {:ex_doc, "~> 0.16.3"},
+    ]
+  end
+
+  defp package do
+    [
+      name: :wait_for_it,
+      files: ["lib", "mix.exs", "README*", "LICENSE*"],
+      maintainers: ["Jason Voegele"],
+      licenses: ["Apache 2.0"],
+      links: %{"GitHub" => "https://github.com/jvoegele/wait_for_it"}
     ]
   end
 end
