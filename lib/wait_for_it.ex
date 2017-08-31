@@ -3,14 +3,14 @@ defmodule WaitForIt do
   WaitForIt provides macros for various ways to wait for things to happen.
 
   Since most Elixir systems are highly concurrent there must be a way to coordinate and synchronize
-  the concurrent processes in the system. While the language provides features such as
-  `Process.sleep/1` and `receive`/`after` that can be used implement such synhronization, they are
-  inconvenient to use for this purpose. WaitForIt builds on top of these language features to
-  provide convenient and easy-to-use facilities for synchronizing concurrent activities. While
-  this is likely most useful for test code in which tests must wait for concurrent or asynchronous
-  activities to complete, it is also useful in any scenario where concurrent processes must
-  coordinate their activity. Examples include asynchronous event handling, producer-consumer
-  processes, and time-based activity.
+  the processes in the system. While the language provides features (such as `Process.sleep/1` and
+  `receive`/`after`) that can be used to implement such synchronization, they are inconvenient to
+  use for this purpose. `WaitForIt` builds on top of these language features to provide convenient
+  and easy-to-use facilities for synchronizing concurrent activities. While this is likely most
+  useful for test code in which tests must wait for concurrent or asynchronous activities to
+  complete, it is also useful in any scenario where concurrent processes must coordinate their
+  activity. Examples include asynchronous event handling, producer-consumer processes, and
+  time-based activity.
 
   There are three distinct forms of waiting provided:
 
