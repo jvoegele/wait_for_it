@@ -121,7 +121,7 @@ defmodule WaitForItTest do
 
     test "accepts a :frequency option" do
       5 = cond_wait frequency: 1 do
-        (count = increment_counter; count > 4) -> count
+        (count = increment_counter(); count > 4) -> count
         2 + 2 == 5 -> 1984
         :answer == 42 -> :question
       end
