@@ -44,7 +44,7 @@ defmodule WaitForIt.Helpers do
         end
       end
 
-      Process.exit(waiter, :normal)
+      Process.exit(waiter, :kill)
       result
     end
   end
@@ -97,7 +97,7 @@ defmodule WaitForIt.Helpers do
         end
       end
 
-      Process.exit(waiter, :normal)
+      Process.exit(waiter, :kill)
       result
     end
   end
@@ -148,7 +148,7 @@ defmodule WaitForIt.Helpers do
         end
       end
 
-      Process.exit(waiter, :normal)
+      Process.exit(waiter, :kill)
       result
     end
   end
