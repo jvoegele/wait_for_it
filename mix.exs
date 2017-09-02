@@ -32,7 +32,7 @@ defmodule WaitForIt.Mixfile do
   defp package do
     [
       name: :wait_for_it,
-      files: ["lib", "mix.exs", "README*", "LICENSE*"],
+      files: ["lib", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md"],
       maintainers: ["Jason Voegele"],
       licenses: ["Apache 2.0"],
       links: %{"GitHub" => "https://github.com/jvoegele/wait_for_it"}
