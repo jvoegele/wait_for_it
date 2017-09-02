@@ -20,7 +20,7 @@ defmodule WaitForItTest do
     Agent.update(counter_pid, fn(n) -> n + 1 end)
   end
 
-  defp increment_task(counter_pid, opts \\ []) do
+  defp increment_task(counter_pid, opts) do
     sleep_time = Keyword.get(opts, :sleep_time, 0)
     max = Keyword.get(opts, :max, 1_000_000)
     condition_var = Keyword.get(opts, :signal)
@@ -107,6 +107,16 @@ defmodule WaitForItTest do
       end
       assert result == {:timeout, timeout}
     end
+
+    test "accepts an else block" do
+      {:ok, counter} = init_counter(0)
+      result = case_wait get_counter(counter), signal: :counter_wait, timeout: 10 do
+        100 -> 100
+      else
+        {:timeout, :else_clause}
+      end
+      assert result == {:timeout, :else_clause}
+    end
   end
 
   describe "cond_wait/1" do
@@ -153,6 +163,16 @@ defmodule WaitForItTest do
         get_counter(counter) > 99 -> :will_never_get_here
       end
       assert result == {:timeout, timeout}
+    end
+
+    test "accepts an else block" do
+      {:ok, counter} = init_counter(0)
+      result = cond_wait signal: :counter_wait, timeout: 10 do
+        :answer == 42 -> true
+      else
+        {:timeout, :else_clause}
+      end
+      assert result == {:timeout, :else_clause}
     end
   end
 end

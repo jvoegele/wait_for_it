@@ -54,7 +54,7 @@ defmodule WaitForIt do
   Notice that the same condition variable name `:wait_for_buffer` is used in both cases. It is
   important to note that when using condition variables for signaling like this, both the `wait`
   invocation and the `signal` invocation should be in the same Elixir module. This is because
-  WaitForIt uses the calling module as a namespace for condition variable names to prevent
+  `WaitForIt` uses the calling module as a namespace for condition variable names to prevent
   accidental name collisions with other registered processes in the application. Also note that
   just because a condition variable has been signalled does not necessarily mean that any waiters
   on that condition variable can stop waiting. Rather, a signal indicates that waiters should
@@ -112,7 +112,8 @@ defmodule WaitForIt do
 
   @doc ~S"""
   Wait until the given `expression` matches one of the case clauses in the given block. Returns
-  the value of the matching clause or `{:timeout, timeout_milliseconds}`.
+  the value of the matching clause, the value of the optional `else` clause,
+  or a tuple of the form `{:timeout, timeout_milliseconds}`.
 
   The `do` block passed to this macro must be a series of case clauses exactly like a built-in
   Elixir `case` expression. Just like a `case` expression, the clauses will attempt to be matched
@@ -120,6 +121,12 @@ defmodule WaitForIt do
   expression. The difference with `case_wait` is that if none of the clauses initially matches it
   will wait and periodically re-evaluate the clauses until one of them does match or a timeout
   occurs.
+
+  An optional `else` clause may also be used to provide the value in case of a timeout. If an
+  `else` clause is provided and a timeout occurs, then the `else` clause will be evaluated and
+  the resulting value of the `else` clause becomes the value of the `case_wait` expression. If no
+  `else` clause is provided and a timeout occurs, then the value of the `case_wait` expression is a
+  tuple of the form `{:timeout, timeout_milliseconds}`.
 
   ## Options
 
@@ -135,6 +142,9 @@ defmodule WaitForIt do
 
       WaitForIt.case_wait Queue.get_messages(queue), timeout: 30_000, frequency: 100 do
         messages when length(messages) > 4 -> messages
+      else
+        # If after 30 seconds we still don't have 4 messages, return an empty list.
+        []
       end
 
     A thermostat that keeps temperature in a small range:
@@ -162,10 +172,12 @@ defmodule WaitForIt do
         church_bell_chimes()
       end
   """
-  defmacro case_wait(expression, opts \\ [], do: block) do
+  defmacro case_wait(expression, opts \\ [], blocks) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
     condition_var = Keyword.get(opts, :signal)
+    do_block = Keyword.get(blocks, :do)
+    else_block = Keyword.get(blocks, :else)
 
     if condition_var do
       quote do
@@ -173,7 +185,8 @@ defmodule WaitForIt do
         _ = Helpers.condition_var_case_wait(unquote(expression),
                                             unquote(condition_var),
                                             unquote(timeout),
-                                            unquote(block))
+                                            unquote(do_block),
+                                            unquote(else_block))
       end
     else
       quote do
@@ -181,14 +194,16 @@ defmodule WaitForIt do
         Helpers.polling_case_wait(unquote(expression),
                                   unquote(frequency),
                                   unquote(timeout),
-                                  unquote(block))
+                                  unquote(do_block),
+                                  unquote(else_block))
       end
     end
   end
 
   @doc ~S"""
   Wait until one of the expressions in the given block evaluates to a truthy value. Returns the
-  value corresponding with the matching expression or `{:timeout, timeout_milliseconds}`.
+  value corresponding with the matching expression, the value of the optional `else` clause,
+  or a tuple of the form `{:timeout, timeout_milliseconds}`.
 
   The `do` block passed to this macro must be a series of expressions exactly like a built-in
   Elixir `cond` expression. Just like a `cond` expression, the embedded expresions will be
@@ -196,6 +211,12 @@ defmodule WaitForIt do
   the expression. The difference with `cond_wait` is that if none of the expressions is initially
   truthy it will wait and periodically re-evaluate them until one of them becomes truthy or a
   timeout occurs.
+
+  An optional `else` clause may also be used to provide the value in case of a timeout. If an
+  `else` clause is provided and a timeout occurs, then the `else` clause will be evaluated and
+  the resulting value of the `else` clause becomes the value of the `cond_wait` expression. If no
+  `else` clause is provided and a timeout occurs, then the value of the `cond_wait` expression is a
+  tuple of the form `{:timeout, timeout_milliseconds}`.
 
   ## Options
 
@@ -214,28 +235,34 @@ defmodule WaitForIt do
           read_sensor(:sensor1) > 9 -> IO.puts("Alarm: :sensor1 too high!")
           read_sensor(:sensor2) < 100 -> IO.puts("Alarm: :sensor2 too low!")
           read_sensor(:sensor3) < 0 -> IO.puts("Alarm: :sensor3 below zero!")
+        else
+          IO.puts("All is good...for now.")
         end
         sound_the_alarm()
       end
   """
-  defmacro cond_wait(opts \\ [], do: block) do
+  defmacro cond_wait(opts \\ [], blocks) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
     condition_var = Keyword.get(opts, :signal)
+    do_block = Keyword.get(blocks, :do)
+    else_block = Keyword.get(blocks, :else)
 
     if condition_var do
       quote do
         require WaitForIt.Helpers
         _ = Helpers.condition_var_cond_wait(unquote(condition_var),
                                             unquote(timeout),
-                                            unquote(block))
+                                            unquote(do_block),
+                                            unquote(else_block))
       end
     else
       quote do
         require WaitForIt.Helpers
         Helpers.polling_cond_wait(unquote(frequency),
                                   unquote(timeout),
-                                  unquote(block))
+                                  unquote(do_block),
+                                  unquote(else_block))
       end
     end
   end

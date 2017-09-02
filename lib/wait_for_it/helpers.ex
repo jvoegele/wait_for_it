@@ -11,7 +11,7 @@ defmodule WaitForIt.Helpers do
       start_time = Helpers._now()
       end_time = start_time + unquote(timeout)
 
-      Helpers._loop(true) do
+      Helpers._loop(true, else: nil) do
         value = unquote(expression)
         if value do
           throw {:break, value}
@@ -31,7 +31,7 @@ defmodule WaitForIt.Helpers do
     quote do
       waiter = Helpers._start_waiter(self(), unquote(timeout))
 
-      result = Helpers._loop(true) do
+      result = Helpers._loop(true, else: nil) do
         value = unquote(expression)
         if value do
           throw {:break, value}
@@ -49,14 +49,14 @@ defmodule WaitForIt.Helpers do
     end
   end
 
-  defmacro condition_var_case_wait(expression, condition_var, timeout, block) do
+  defmacro condition_var_case_wait(expression, condition_var, timeout, block, else_block) do
     quote do
       local_name = Helpers._localized_name(unquote(condition_var))
       Helpers._init_condition_var(local_name)
       start_time = Helpers._now()
       end_time = start_time + unquote(timeout)
 
-      Helpers._loop do
+      Helpers._loop(false, else: unquote(else_block)) do
         value = unquote(expression)
         try do
           result = case value do
@@ -76,11 +76,11 @@ defmodule WaitForIt.Helpers do
     end
   end
 
-  defmacro polling_case_wait(expression, frequency, timeout, block) do
+  defmacro polling_case_wait(expression, frequency, timeout, block, else_block) do
     quote do
       waiter = Helpers._start_waiter(self(), unquote(timeout))
 
-      result = Helpers._loop do
+      result = Helpers._loop(false, else: unquote(else_block)) do
         value = unquote(expression)
         try do
           result = case value do
@@ -102,14 +102,14 @@ defmodule WaitForIt.Helpers do
     end
   end
 
-  defmacro condition_var_cond_wait(condition_var, timeout, block) do
+  defmacro condition_var_cond_wait(condition_var, timeout, block, else_block) do
     quote do
       local_name = Helpers._localized_name(unquote(condition_var))
       Helpers._init_condition_var(local_name)
       start_time = Helpers._now()
       end_time = start_time + unquote(timeout)
 
-      Helpers._loop do
+      Helpers._loop(false, else: unquote(else_block)) do
         try do
           result = cond do
             unquote(block)
@@ -128,11 +128,11 @@ defmodule WaitForIt.Helpers do
     end
   end
 
-  defmacro polling_cond_wait(frequency, timeout, block) do
+  defmacro polling_cond_wait(frequency, timeout, block, else_block) do
     quote do
       waiter = Helpers._start_waiter(self(), unquote(timeout))
 
-      result = Helpers._loop do
+      result = Helpers._loop(false, else: unquote(else_block)) do
         try do
           result = cond do
             unquote(block)
@@ -161,7 +161,7 @@ defmodule WaitForIt.Helpers do
     end
   end
 
-  defmacro _loop(wrap_return_value \\ false, do: do_block) do
+  defmacro _loop(wrap_return_value, [else: else_block], do: do_block) do
     quote do
       try do
         for _ <- Stream.cycle([:ok]) do
@@ -170,7 +170,13 @@ defmodule WaitForIt.Helpers do
       catch
         {:break, value} ->
           if unquote(wrap_return_value), do: {:ok, value}, else: value
-        {:timeout, timeout} -> {:timeout, timeout}
+        {:timeout, timeout} ->
+          else_clause = unquote(else_block)
+          if else_clause do
+            else_clause
+          else
+            {:timeout, timeout}
+          end
       end
     end
   end
