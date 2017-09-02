@@ -35,7 +35,7 @@ of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:wait_for_it, "~> 1.1.0"}
+    {:wait_for_it, "~> 1.1"}
   ]
 end
 ```
