@@ -176,7 +176,7 @@ defmodule WaitForIt.Helpers do
   end
 
   def _init_condition_var(var) do
-    :ok = ConditionVariable.start_link(var)
+    {:ok, _pid} = ConditionVariable.Supervisor.named_condition_variable(var)
   end
 
   def _start_waiter(waiting_pid, timeout) do
