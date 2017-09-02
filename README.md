@@ -22,11 +22,6 @@ There are three distinct forms of waiting provided:
 
 See the [API reference](https://hexdocs.pm/wait_for_it/api-reference.html) for full documentation.
 
-## TODO
-
-  * Use supervisor for condition variables.
-  * Support `:infinity` option for `:timeout`
-
 ## Installation
 
 `wait_for_it` can be installed from Hex by adding `wait_for_it` to your list
