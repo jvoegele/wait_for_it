@@ -96,16 +96,18 @@ defmodule WaitForIt do
     if condition_var do
       quote do
         require WaitForIt.Helpers
-        _ = Helpers.condition_var_wait(unquote(expression),
-                                       unquote(condition_var),
-                                       unquote(timeout))
+
+        _ =
+          Helpers.condition_var_wait(
+            unquote(expression),
+            unquote(condition_var),
+            unquote(timeout)
+          )
       end
     else
       quote do
         require WaitForIt.Helpers
-        Helpers.polling_wait(unquote(expression),
-                             unquote(frequency),
-                             unquote(timeout))
+        Helpers.polling_wait(unquote(expression), unquote(frequency), unquote(timeout))
       end
     end
   end
@@ -182,20 +184,27 @@ defmodule WaitForIt do
     if condition_var do
       quote do
         require WaitForIt.Helpers
-        _ = Helpers.condition_var_case_wait(unquote(expression),
-                                            unquote(condition_var),
-                                            unquote(timeout),
-                                            unquote(do_block),
-                                            unquote(else_block))
+
+        _ =
+          Helpers.condition_var_case_wait(
+            unquote(expression),
+            unquote(condition_var),
+            unquote(timeout),
+            unquote(do_block),
+            unquote(else_block)
+          )
       end
     else
       quote do
         require WaitForIt.Helpers
-        Helpers.polling_case_wait(unquote(expression),
-                                  unquote(frequency),
-                                  unquote(timeout),
-                                  unquote(do_block),
-                                  unquote(else_block))
+
+        Helpers.polling_case_wait(
+          unquote(expression),
+          unquote(frequency),
+          unquote(timeout),
+          unquote(do_block),
+          unquote(else_block)
+        )
       end
     end
   end
@@ -251,18 +260,25 @@ defmodule WaitForIt do
     if condition_var do
       quote do
         require WaitForIt.Helpers
-        _ = Helpers.condition_var_cond_wait(unquote(condition_var),
-                                            unquote(timeout),
-                                            unquote(do_block),
-                                            unquote(else_block))
+
+        _ =
+          Helpers.condition_var_cond_wait(
+            unquote(condition_var),
+            unquote(timeout),
+            unquote(do_block),
+            unquote(else_block)
+          )
       end
     else
       quote do
         require WaitForIt.Helpers
-        Helpers.polling_cond_wait(unquote(frequency),
-                                  unquote(timeout),
-                                  unquote(do_block),
-                                  unquote(else_block))
+
+        Helpers.polling_cond_wait(
+          unquote(frequency),
+          unquote(timeout),
+          unquote(do_block),
+          unquote(else_block)
+        )
       end
     end
   end

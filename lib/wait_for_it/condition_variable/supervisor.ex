@@ -13,8 +13,10 @@ defmodule WaitForIt.ConditionVariable.Supervisor do
     case Supervisor.start_child(__MODULE__, [name]) do
       {:ok, pid} when is_pid(pid) ->
         {:ok, pid}
+
       {:error, {:already_started, pid}} when is_pid(pid) ->
         {:ok, pid}
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -24,6 +26,7 @@ defmodule WaitForIt.ConditionVariable.Supervisor do
     children = [
       worker(WaitForIt.ConditionVariable, [], restart: :temporary)
     ]
+
     supervise(children, strategy: :simple_one_for_one)
   end
 end

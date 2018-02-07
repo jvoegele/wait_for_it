@@ -8,7 +8,7 @@ defmodule WaitForIt.Mixfile do
       description: "Elixir library for waiting for things to happen",
       source_url: "https://github.com/jvoegele/wait_for_it",
       elixir: "~> 1.5",
-      start_permanent: Mix.env == :prod,
+      start_permanent: Mix.env() == :prod,
       package: package(),
       deps: deps()
     ]

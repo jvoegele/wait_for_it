@@ -11,16 +11,18 @@ defmodule WaitForIt.Helpers do
       start_time = Helpers._now()
       end_time = start_time + unquote(timeout)
 
-      Helpers._loop(true, else: nil) do
+      Helpers._loop true, else: nil do
         value = unquote(expression)
+
         if value do
-          throw {:break, value}
+          throw({:break, value})
         else
           elapsed_time = Helpers._now() - start_time
           remaining_time = unquote(timeout) - elapsed_time
+
           case ConditionVariable.wait(local_name, timeout: remaining_time) do
             :ok -> :loop
-            :timeout -> throw {:timeout, unquote(timeout)}
+            :timeout -> throw({:timeout, unquote(timeout)})
           end
         end
       end
@@ -31,18 +33,20 @@ defmodule WaitForIt.Helpers do
     quote do
       waiter = Helpers._start_waiter(self(), unquote(timeout))
 
-      result = Helpers._loop(true, else: nil) do
-        value = unquote(expression)
-        if value do
-          throw {:break, value}
-        else
-          receive do
-            {^waiter, timeout} -> throw {:timeout, timeout}
-          after
-            unquote(frequency) -> :loop
+      result =
+        Helpers._loop true, else: nil do
+          value = unquote(expression)
+
+          if value do
+            throw({:break, value})
+          else
+            receive do
+              {^waiter, timeout} -> throw({:timeout, timeout})
+            after
+              unquote(frequency) -> :loop
+            end
           end
         end
-      end
 
       Process.exit(waiter, :kill)
       result
@@ -56,20 +60,24 @@ defmodule WaitForIt.Helpers do
       start_time = Helpers._now()
       end_time = start_time + unquote(timeout)
 
-      Helpers._loop(false, else: unquote(else_block)) do
+      Helpers._loop false, else: unquote(else_block) do
         value = unquote(expression)
+
         try do
-          result = case value do
-            unquote(block)
-          end
-          throw {:break, result}
+          result =
+            case value do
+              unquote(block)
+            end
+
+          throw({:break, result})
         rescue
           CaseClauseError ->
             elapsed_time = Helpers._now() - start_time
             remaining_time = unquote(timeout) - elapsed_time
+
             case ConditionVariable.wait(local_name, timeout: remaining_time) do
               :ok -> :loop
-              :timeout -> throw {:timeout, unquote(timeout)}
+              :timeout -> throw({:timeout, unquote(timeout)})
             end
         end
       end
@@ -80,22 +88,26 @@ defmodule WaitForIt.Helpers do
     quote do
       waiter = Helpers._start_waiter(self(), unquote(timeout))
 
-      result = Helpers._loop(false, else: unquote(else_block)) do
-        value = unquote(expression)
-        try do
-          result = case value do
-            unquote(block)
+      result =
+        Helpers._loop false, else: unquote(else_block) do
+          value = unquote(expression)
+
+          try do
+            result =
+              case value do
+                unquote(block)
+              end
+
+            throw({:break, result})
+          rescue
+            CaseClauseError ->
+              receive do
+                {^waiter, timeout} -> throw({:timeout, timeout})
+              after
+                unquote(frequency) -> :loop
+              end
           end
-          throw {:break, result}
-        rescue
-          CaseClauseError ->
-            receive do
-              {^waiter, timeout} -> throw {:timeout, timeout}
-            after
-              unquote(frequency) -> :loop
-            end
         end
-      end
 
       Process.exit(waiter, :kill)
       result
@@ -109,19 +121,22 @@ defmodule WaitForIt.Helpers do
       start_time = Helpers._now()
       end_time = start_time + unquote(timeout)
 
-      Helpers._loop(false, else: unquote(else_block)) do
+      Helpers._loop false, else: unquote(else_block) do
         try do
-          result = cond do
-            unquote(block)
-          end
-          throw {:break, result}
+          result =
+            cond do
+              unquote(block)
+            end
+
+          throw({:break, result})
         rescue
           CondClauseError ->
             elapsed_time = Helpers._now() - start_time
             remaining_time = unquote(timeout) - elapsed_time
+
             case ConditionVariable.wait(local_name, timeout: remaining_time) do
               :ok -> :loop
-              :timeout -> throw {:timeout, unquote(timeout)}
+              :timeout -> throw({:timeout, unquote(timeout)})
             end
         end
       end
@@ -132,21 +147,24 @@ defmodule WaitForIt.Helpers do
     quote do
       waiter = Helpers._start_waiter(self(), unquote(timeout))
 
-      result = Helpers._loop(false, else: unquote(else_block)) do
-        try do
-          result = cond do
-            unquote(block)
+      result =
+        Helpers._loop false, else: unquote(else_block) do
+          try do
+            result =
+              cond do
+                unquote(block)
+              end
+
+            throw({:break, result})
+          rescue
+            CondClauseError ->
+              receive do
+                {^waiter, timeout} -> throw({:timeout, timeout})
+              after
+                unquote(frequency) -> :loop
+              end
           end
-          throw {:break, result}
-        rescue
-          CondClauseError ->
-            receive do
-              {^waiter, timeout} -> throw {:timeout, timeout}
-            after
-              unquote(frequency) -> :loop
-            end
         end
-      end
 
       Process.exit(waiter, :kill)
       result
@@ -170,8 +188,10 @@ defmodule WaitForIt.Helpers do
       catch
         {:break, value} ->
           if unquote(wrap_return_value), do: {:ok, value}, else: value
+
         {:timeout, timeout} ->
           else_clause = unquote(else_block)
+
           if else_clause do
             else_clause
           else
@@ -186,12 +206,14 @@ defmodule WaitForIt.Helpers do
   end
 
   def _start_waiter(waiting_pid, timeout) do
-    {:ok, waiter} = Task.start fn ->
-      receive do
-      after
-        timeout -> send(waiting_pid, {self(), timeout})
-      end
-    end
+    {:ok, waiter} =
+      Task.start(fn ->
+        receive do
+        after
+          timeout -> send(waiting_pid, {self(), timeout})
+        end
+      end)
+
     waiter
   end
 

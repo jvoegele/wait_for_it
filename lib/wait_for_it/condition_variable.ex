@@ -13,17 +13,18 @@ defmodule WaitForIt.ConditionVariable do
 
   def registry, do: __MODULE__.Registry
 
-  def signal(condition_var) when is_atom(condition_var),
-    do: signal(via_tuple(condition_var))
-  def signal(condition_var),
-    do: GenServer.cast(condition_var, :signal)
+  def signal(condition_var) when is_atom(condition_var), do: signal(via_tuple(condition_var))
+  def signal(condition_var), do: GenServer.cast(condition_var, :signal)
 
   def wait(condition_var, opts \\ [])
+
   def wait(condition_var, opts) when is_atom(condition_var),
     do: wait(via_tuple(condition_var), opts)
+
   def wait(condition_var, opts) do
     ref = make_ref()
     GenServer.call(condition_var, {:wait, ref})
+
     receive do
       {:signal, ^ref} -> :ok
     after
@@ -36,7 +37,7 @@ defmodule WaitForIt.ConditionVariable do
   end
 
   def handle_call({:wait, ref}, {from, _tag}, state) do
-    {:reply, :ok, Map.update!(state, :waiters, &([{from, ref}|&1]))}
+    {:reply, :ok, Map.update!(state, :waiters, &[{from, ref} | &1])}
   end
 
   def handle_cast(:signal, state) do
