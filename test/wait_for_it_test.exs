@@ -1,5 +1,6 @@
 defmodule WaitForItTest do
   use ExUnit.Case
+  use ExUnitProperties
   import WaitForIt
 
   defp increment_counter do
@@ -203,7 +204,7 @@ defmodule WaitForItTest do
     end
 
     test "accepts an else block" do
-      {:ok, counter} = init_counter(0)
+      {:ok, _counter} = init_counter(0)
 
       result =
         cond_wait signal: :counter_wait, timeout: 10 do
@@ -213,6 +214,33 @@ defmodule WaitForItTest do
         end
 
       assert result == {:timeout, :else_clause}
+    end
+  end
+
+  describe "multiple waiters using :signal option" do
+    property "all wait until they receive the signal" do
+      check all initial <- integer(),
+                factor <- integer(1..10),
+                waiter_count <- integer(1..20) do
+        {:ok, counter} = init_counter(0)
+        tasks =
+          for i <- 1..waiter_count do
+            Task.async fn ->
+              case_wait get_counter(counter), signal: :counter_wait do
+                n when n > i * factor ->
+                  {:ok, n}
+                else
+                  {:error, get_counter(counter)}
+              end
+            end
+          end
+
+        _task = increment_task(counter, signal: :counter_wait)
+
+        for task <- tasks do
+          assert {:ok, _} = Task.await(task)
+        end
+      end
     end
   end
 end
