@@ -20,7 +20,7 @@ There are three distinct forms of waiting provided:
   3. The `cond_wait` macro waits until any one of the given expressions evaluates to a truthy
      value (looks like an Elixir `cond` expression).
 
-See the [API reference](https://hexdocs.pm/wait_for_it/api-reference.html) for full documentation.
+See the [API reference](https://hexdocs.pm/wait_for_it/WaitForIt.html) for full documentation.
 
 ## Installation
 
