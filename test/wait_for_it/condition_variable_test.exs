@@ -31,4 +31,15 @@ defmodule WaitForIt.ConditionVariableTest do
     {:ok, _pid} = ConditionVariable.start_link(:cond_wait)
     :timeout = ConditionVariable.wait(:cond_wait, timeout: 10)
   end
+
+  test "self destructs after idle timeout" do
+    idle_timeout = 10
+    {:ok, pid} = ConditionVariable.start_link(idle_timeout: idle_timeout)
+    assert Process.alive?(pid)
+    Process.sleep(idle_timeout + 1)
+    assert Process.alive?(pid)
+    ConditionVariable.signal(pid)
+    Process.sleep(idle_timeout + 1)
+    refute Process.alive?(pid)
+  end
 end

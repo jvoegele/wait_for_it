@@ -1,14 +1,26 @@
 defmodule WaitForIt.ConditionVariable do
   use GenServer
 
-  defstruct waiters: []
+  @default_idle_timeout 60_000
+
+  defstruct waiters: [],
+            idle_timeout: @default_idle_timeout
 
   def start_link do
-    GenServer.start_link(__MODULE__, :ok)
+    start_link(idle_timeout: @default_idle_timeout)
   end
 
-  def start_link(name) do
-    GenServer.start_link(__MODULE__, :ok, name: via_tuple(name))
+  def start_link(name) when is_atom(name) do
+    start_link(name, idle_timeout: @default_idle_timeout)
+  end
+
+  def start_link(idle_timeout: idle_timeout) when is_integer(idle_timeout) do
+    GenServer.start_link(__MODULE__, idle_timeout)
+  end
+
+  def start_link(name, idle_timeout: idle_timeout)
+      when is_atom(name) and is_integer(idle_timeout) do
+    GenServer.start_link(__MODULE__, idle_timeout, name: via_tuple(name))
   end
 
   def registry, do: __MODULE__.Registry
@@ -32,8 +44,8 @@ defmodule WaitForIt.ConditionVariable do
     end
   end
 
-  def init(:ok) do
-    {:ok, %__MODULE__{}}
+  def init(idle_timeout) do
+    {:ok, %__MODULE__{idle_timeout: idle_timeout}}
   end
 
   def handle_call({:wait, ref}, {from, _tag}, state) do
@@ -42,7 +54,11 @@ defmodule WaitForIt.ConditionVariable do
 
   def handle_cast(:signal, state) do
     for {pid, ref} <- state.waiters, do: send(pid, {:signal, ref})
-    {:noreply, %{state | waiters: []}}
+    {:noreply, %{state | waiters: []}, state.idle_timeout}
+  end
+
+  def handle_info(:timeout, state) do
+    {:stop, :normal, state}
   end
 
   defp via_tuple(name), do: {:via, Registry, {registry(), name}}
