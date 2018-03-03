@@ -4,7 +4,7 @@ defmodule WaitForIt.Mixfile do
   def project do
     [
       app: :wait_for_it,
-      version: "1.1.0",
+      version: "1.1.1",
       description: "Elixir library for waiting for things to happen",
       source_url: "https://github.com/jvoegele/wait_for_it",
       elixir: "~> 1.5",
