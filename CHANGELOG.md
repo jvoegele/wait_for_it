@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.1] - 2018-03-03
+### Added
+- Add idle timeout feature for ConditionVariable.
+
 ## [1.1.0] - 2017-09-02
 ### Added
 - Add support for else clause in case_wait and cond_wait. [(Issue #4)](https://github.com/jvoegele/wait_for_it/issues/4)
@@ -22,5 +26,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial release supporting `wait`, `case_wait`, and `cond_wait` with either polling or condition variable signaling.
 
 [Unreleased]: https://github.com/jvoegele/wait_for_it/compare/v1.1.0...HEAD
+[1.1.1]: https://github.com/jvoegele/wait_for_it/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/jvoegele/wait_for_it/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jvoegele/wait_for_it/compare/init...v1.0.0
