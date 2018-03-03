@@ -18,7 +18,11 @@ defmodule WaitForItTest do
   end
 
   defp increment_counter(counter_pid) do
-    Agent.update(counter_pid, fn n -> n + 1 end)
+    try do
+      Agent.update(counter_pid, fn n -> n + 1 end)
+    catch
+      :exit, _ -> nil
+    end
   end
 
   defp increment_task(counter_pid, opts) do
@@ -26,7 +30,7 @@ defmodule WaitForItTest do
     max = Keyword.get(opts, :max, 1_000_000)
     condition_var = Keyword.get(opts, :signal)
 
-    Task.async(fn ->
+    Task.start_link(fn ->
       for _ <- 1..max do
         increment_counter(counter_pid)
         if condition_var, do: signal(condition_var)
@@ -110,16 +114,17 @@ defmodule WaitForItTest do
       assert get_counter(counter) >= count
     end
 
-    test "times out if signal not received" do
-      {:ok, counter} = init_counter(0)
-      timeout = 10
+    property "times out if signal not received" do
+      check all timeout <- integer(5..50) do
+        {:ok, counter} = init_counter(0)
 
-      result =
-        case_wait get_counter(counter), signal: :counter_wait, timeout: 10 do
-          100 -> 100
-        end
+        result =
+          case_wait get_counter(counter), signal: :counter_wait, timeout: timeout do
+            100 -> 100
+          end
 
-      assert result == {:timeout, timeout}
+        assert result == {:timeout, timeout}
+      end
     end
 
     test "accepts an else block" do
@@ -223,16 +228,17 @@ defmodule WaitForItTest do
                 factor <- integer(1..10),
                 waiter_count <- integer(1..20) do
         {:ok, counter} = init_counter(0)
+
         tasks =
           for i <- 1..waiter_count do
-            Task.async fn ->
+            Task.async(fn ->
               case_wait get_counter(counter), signal: :counter_wait do
                 n when n > i * factor ->
                   {:ok, n}
-                else
-                  {:error, get_counter(counter)}
+              else
+                {:error, get_counter(counter)}
               end
-            end
+            end)
           end
 
         _task = increment_task(counter, signal: :counter_wait)
@@ -242,5 +248,47 @@ defmodule WaitForItTest do
         end
       end
     end
+
+    property "death of waiting process does not affect other waiters" do
+      check all waiter_count <- integer(3..50),
+                kill_count <- integer(0..3),
+                kill_reason <- member_of([:normal, :kill, :shutdown, :die]),
+                kill_count <= waiter_count do
+        {:ok, counter} = init_counter(0)
+
+        {:ok, task_supervisor} = Task.Supervisor.start_link()
+
+        tasks =
+          for i <- 1..waiter_count do
+            Task.Supervisor.async_nolink(task_supervisor, fn ->
+              case_wait get_counter(counter), signal: :counter_wait do
+                n when n > i * 3 ->
+                  {:ok, n}
+              else
+                {:error, get_counter(counter)}
+              end
+            end)
+          end
+
+        tasks
+        |> Enum.take_random(kill_count)
+        |> Enum.each(fn task -> Process.exit(task.pid, kill_reason) end)
+
+        _task = increment_task(counter, signal: :counter_wait)
+
+        completed_tasks =
+          tasks
+          |> Enum.map(&Task.yield(&1, 500))
+          |> Enum.filter(&filter_ok/1)
+
+        expected_completed_count =
+          if kill_reason == :normal, do: waiter_count, else: waiter_count - kill_count
+
+        assert length(completed_tasks) == expected_completed_count
+      end
+    end
+
+    defp filter_ok({:ok, _}), do: true
+    defp filter_ok(_), do: false
   end
 end
