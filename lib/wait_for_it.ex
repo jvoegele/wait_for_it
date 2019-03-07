@@ -64,8 +64,9 @@ defmodule WaitForIt do
   alias WaitForIt.Helpers
 
   @doc ~S"""
-  Wait until the given `expression` evaluates to a truthy value. Returns `{:ok, value}` or
-  `{:timeout, timeout_milliseconds}`.
+  Wait until the given `expression` evaluates to a truthy value.
+
+  Returns `{:ok, value}` or `{:timeout, timeout_milliseconds}`.
 
   ## Options
 
@@ -113,8 +114,9 @@ defmodule WaitForIt do
   end
 
   @doc ~S"""
-  Wait until the given `expression` matches one of the case clauses in the given block. Returns
-  the value of the matching clause, the value of the optional `else` clause,
+  Wait until the given `expression` matches one of the case clauses in the given block.
+
+  Returns the value of the matching clause, the value of the optional `else` clause,
   or a tuple of the form `{:timeout, timeout_milliseconds}`.
 
   The `do` block passed to this macro must be a series of case clauses exactly like a built-in
@@ -210,9 +212,10 @@ defmodule WaitForIt do
   end
 
   @doc ~S"""
-  Wait until one of the expressions in the given block evaluates to a truthy value. Returns the
-  value corresponding with the matching expression, the value of the optional `else` clause,
-  or a tuple of the form `{:timeout, timeout_milliseconds}`.
+  Wait until one of the expressions in the given block evaluates to a truthy value.
+
+  Returns the value corresponding with the matching expression, the value of the optional `else`
+  clause, or a tuple of the form `{:timeout, timeout_milliseconds}`.
 
   The `do` block passed to this macro must be a series of expressions exactly like a built-in
   Elixir `cond` expression. Just like a `cond` expression, the embedded expresions will be
