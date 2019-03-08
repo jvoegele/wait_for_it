@@ -139,6 +139,20 @@ defmodule WaitForItTest do
 
       assert result == {:timeout, :else_clause}
     end
+
+    test "accepts an else block with case clauses" do
+      result =
+        case_wait increment_counter(), frequency: 5, timeout: 10 do
+          100 -> 100
+        else
+          :foo -> :will_never_reach_here
+          n when is_integer(n) -> {:else, n}
+          :bar -> :will_never_reach_here
+        end
+
+      assert {:else, count} = result
+      assert count < 10
+    end
   end
 
   describe "cond_wait/1" do
@@ -224,8 +238,7 @@ defmodule WaitForItTest do
 
   describe "multiple waiters using :signal option" do
     property "all wait until they receive the signal" do
-      check all initial <- integer(),
-                factor <- integer(1..10),
+      check all factor <- integer(1..10),
                 waiter_count <- integer(1..20) do
         {:ok, counter} = init_counter(0)
 
