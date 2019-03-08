@@ -1,212 +1,103 @@
 defmodule WaitForIt.Helpers do
   @moduledoc false
 
-  alias __MODULE__
   alias WaitForIt.ConditionVariable
 
-  defmacro condition_var_wait(expression, condition_var, timeout) do
+  @tag :__wait_for_it_result__
+
+  defmacro localized_name(name) do
+    if name do
+      quote do: :"#{__MODULE__}.#{unquote(name)}"
+    end
+  end
+
+  defmacro make_function(nil), do: nil
+
+  defmacro make_function(expression), do: quote do: fn -> unquote(expression) end
+
+  defmacro make_case_function(cases) do
     quote do
-      local_name = Helpers._localized_name(unquote(condition_var))
-      Helpers._init_condition_var(local_name)
-      start_time = Helpers._now()
-      end_time = start_time + unquote(timeout)
-
-      Helpers._loop true, else: nil do
-        value = unquote(expression)
-
-        if value do
-          throw({:break, value})
-        else
-          elapsed_time = Helpers._now() - start_time
-          remaining_time = unquote(timeout) - elapsed_time
-
-          case ConditionVariable.wait(local_name, timeout: remaining_time) do
-            :ok -> :loop
-            :timeout -> throw({:timeout, unquote(timeout)})
-          end
+      fn expr ->
+        case expr do
+          unquote(cases)
         end
       end
     end
   end
 
-  defmacro polling_wait(expression, frequency, timeout) do
+  defmacro make_cond_function(cond_clauses) do
     quote do
-      waiter = Helpers._start_waiter(self(), unquote(timeout))
-
-      result =
-        Helpers._loop true, else: nil do
-          value = unquote(expression)
-
-          if value do
-            throw({:break, value})
-          else
-            receive do
-              {^waiter, timeout} -> throw({:timeout, timeout})
-            after
-              unquote(frequency) -> :loop
-            end
-          end
-        end
-
-      Process.exit(waiter, :kill)
-      result
-    end
-  end
-
-  defmacro condition_var_case_wait(expression, condition_var, timeout, block, else_block) do
-    quote do
-      local_name = Helpers._localized_name(unquote(condition_var))
-      Helpers._init_condition_var(local_name)
-      start_time = Helpers._now()
-      end_time = start_time + unquote(timeout)
-
-      Helpers._loop false, else: unquote(else_block) do
-        value = unquote(expression)
-
-        try do
-          result =
-            case value do
-              unquote(block)
-            end
-
-          throw({:break, result})
-        rescue
-          CaseClauseError ->
-            elapsed_time = Helpers._now() - start_time
-            remaining_time = unquote(timeout) - elapsed_time
-
-            case ConditionVariable.wait(local_name, timeout: remaining_time) do
-              :ok -> :loop
-              :timeout -> throw({:timeout, unquote(timeout)})
-            end
+      fn ->
+        cond do
+          unquote(cond_clauses)
         end
       end
     end
   end
 
-  defmacro polling_case_wait(expression, frequency, timeout, block, else_block) do
-    quote do
-      waiter = Helpers._start_waiter(self(), unquote(timeout))
-
-      result =
-        Helpers._loop false, else: unquote(else_block) do
-          value = unquote(expression)
-
-          try do
-            result =
-              case value do
-                unquote(block)
-              end
-
-            throw({:break, result})
-          rescue
-            CaseClauseError ->
-              receive do
-                {^waiter, timeout} -> throw({:timeout, timeout})
-              after
-                unquote(frequency) -> :loop
-              end
-          end
-        end
-
-      Process.exit(waiter, :kill)
-      result
-    end
+  def wait(expression, frequency, timeout, condition_var) do
+    loop(frequency, timeout, condition_var, fn ->
+      value = expression.()
+      if value, do: {:break, value}, else: :loop
+    end)
+    |> handle_wait_result()
   end
 
-  defmacro condition_var_cond_wait(condition_var, timeout, block, else_block) do
-    quote do
-      local_name = Helpers._localized_name(unquote(condition_var))
-      Helpers._init_condition_var(local_name)
-      start_time = Helpers._now()
-      end_time = start_time + unquote(timeout)
-
-      Helpers._loop false, else: unquote(else_block) do
-        try do
-          result =
-            cond do
-              unquote(block)
-            end
-
-          throw({:break, result})
-        rescue
-          CondClauseError ->
-            elapsed_time = Helpers._now() - start_time
-            remaining_time = unquote(timeout) - elapsed_time
-
-            case ConditionVariable.wait(local_name, timeout: remaining_time) do
-              :ok -> :loop
-              :timeout -> throw({:timeout, unquote(timeout)})
-            end
-        end
-      end
-    end
-  end
-
-  defmacro polling_cond_wait(frequency, timeout, block, else_block) do
-    quote do
-      waiter = Helpers._start_waiter(self(), unquote(timeout))
-
-      result =
-        Helpers._loop false, else: unquote(else_block) do
-          try do
-            result =
-              cond do
-                unquote(block)
-              end
-
-            throw({:break, result})
-          rescue
-            CondClauseError ->
-              receive do
-                {^waiter, timeout} -> throw({:timeout, timeout})
-              after
-                unquote(frequency) -> :loop
-              end
-          end
-        end
-
-      Process.exit(waiter, :kill)
-      result
-    end
-  end
-
-  defmacro condition_var_signal(condition_var) do
-    quote do
-      local_name = Helpers._localized_name(unquote(condition_var))
-      Helpers._init_condition_var(local_name)
-      ConditionVariable.signal(local_name)
-    end
-  end
-
-  defmacro _loop(wrap_return_value, [else: else_block], do: do_block) do
-    quote do
+  def case_wait(expression, frequency, timeout, condition_var, do_block, else_block) do
+    loop(frequency, timeout, condition_var, fn ->
       try do
-        for _ <- Stream.cycle([:ok]) do
-          unquote(do_block)
-        end
-      catch
-        {:break, value} ->
-          if unquote(wrap_return_value), do: {:ok, value}, else: value
-
-        {:timeout, timeout} ->
-          else_clause = unquote(else_block)
-
-          if else_clause do
-            else_clause
-          else
-            {:timeout, timeout}
-          end
+        {:break, do_block.(expression.())}
+      rescue
+        CaseClauseError -> :loop
       end
+    end)
+    |> handle_case_wait_result(else_block)
+  end
+
+  def cond_wait(frequency, timeout, condition_var, cond_block, else_block) do
+    loop(frequency, timeout, condition_var, fn ->
+      try do
+        {:break, cond_block.()}
+      rescue
+        CondClauseError -> :loop
+      end
+    end)
+    |> handle_cond_wait_result(else_block)
+  end
+
+  def condition_var_signal(condition_var) do
+    init_condition_var(condition_var)
+    ConditionVariable.signal(condition_var)
+  end
+
+  defp loop(frequency, timeout, nil, function) do
+    time_bomb = start_time_bomb(self(), timeout)
+    result = eval_loop(function, fn -> sleep(time_bomb, frequency) end)
+    stop_time_bomb(time_bomb)
+    result
+  end
+
+  defp loop(_frequency, timeout, condition_var, function) do
+    init_condition_var(condition_var)
+    start_time = now()
+    eval_loop(function, fn -> sleep(condition_var, timeout, start_time) end)
+  end
+
+  defp eval_loop(function, sleeper) do
+    case function.() do
+      {:break, value} ->
+        {@tag, value}
+
+      :loop ->
+        case sleeper.() do
+          :loop -> eval_loop(function, sleeper)
+          {:timeout, timeout} -> {@tag, {:timeout, timeout}}
+        end
     end
   end
 
-  def _init_condition_var(var) do
-    {:ok, _pid} = ConditionVariable.Supervisor.named_condition_variable(var)
-  end
-
-  def _start_waiter(waiting_pid, timeout) do
-    {:ok, waiter} =
+  defp start_time_bomb(waiting_pid, timeout) do
+    {:ok, time_bomb} =
       Task.start(fn ->
         receive do
         after
@@ -214,18 +105,43 @@ defmodule WaitForIt.Helpers do
         end
       end)
 
-    waiter
+    time_bomb
   end
 
-  defmacro _now do
-    quote do
-      DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+  defp stop_time_bomb(time_bomb) when is_pid(time_bomb), do: Process.exit(time_bomb, :kill)
+
+  defp sleep(waiter, frequency) when is_pid(waiter) do
+    receive do
+      {^waiter, timeout} -> {:timeout, timeout}
+    after
+      frequency -> :loop
     end
   end
 
-  defmacro _localized_name(name) do
-    quote do
-      :"#{__MODULE__}.#{unquote(name)}"
+  defp sleep(condition_var, timeout, start_time) when is_atom(condition_var) do
+    elapsed_time = now() - start_time
+    remaining_time = timeout - elapsed_time
+
+    case ConditionVariable.wait(condition_var, timeout: remaining_time) do
+      :ok -> :loop
+      :timeout -> {:timeout, timeout}
     end
   end
+
+  defp init_condition_var(var) do
+    {:ok, _pid} = ConditionVariable.Supervisor.named_condition_variable(var)
+  end
+
+  defp now, do: DateTime.to_unix(DateTime.utc_now(), :millisecond)
+
+  defp handle_wait_result({@tag, {:timeout, timeout}}), do: {:timeout, timeout}
+  defp handle_wait_result({@tag, value}), do: {:ok, value}
+
+  defp handle_case_wait_result({@tag, {:timeout, timeout}}, nil), do: {:timeout, timeout}
+  defp handle_case_wait_result({@tag, {:timeout, _timeout}}, else_block), do: else_block.()
+  defp handle_case_wait_result({@tag, value}, _else_block), do: value
+
+  defp handle_cond_wait_result({@tag, {:timeout, timeout}}, nil), do: {:timeout, timeout}
+  defp handle_cond_wait_result({@tag, {:timeout, _timeout}}, else_block), do: else_block.()
+  defp handle_cond_wait_result({@tag, value}, _else_block), do: value
 end

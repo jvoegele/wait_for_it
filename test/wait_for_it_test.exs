@@ -224,8 +224,7 @@ defmodule WaitForItTest do
 
   describe "multiple waiters using :signal option" do
     property "all wait until they receive the signal" do
-      check all initial <- integer(),
-                factor <- integer(1..10),
+      check all factor <- integer(1..10),
                 waiter_count <- integer(1..20) do
         {:ok, counter} = init_counter(0)
 

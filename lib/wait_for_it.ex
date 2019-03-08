@@ -92,24 +92,17 @@ defmodule WaitForIt do
   defmacro wait(expression, opts \\ []) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
-    condition_var = Keyword.get(opts, :signal)
+    condition_var = Keyword.get(opts, :signal, nil)
 
-    if condition_var do
-      quote do
-        require WaitForIt.Helpers
+    quote do
+      require WaitForIt.Helpers
 
-        _ =
-          Helpers.condition_var_wait(
-            unquote(expression),
-            unquote(condition_var),
-            unquote(timeout)
-          )
-      end
-    else
-      quote do
-        require WaitForIt.Helpers
-        Helpers.polling_wait(unquote(expression), unquote(frequency), unquote(timeout))
-      end
+      Helpers.wait(
+        Helpers.make_function(unquote(expression)),
+        unquote(frequency),
+        unquote(timeout),
+        Helpers.localized_name(unquote(condition_var))
+      )
     end
   end
 
@@ -183,31 +176,17 @@ defmodule WaitForIt do
     do_block = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
 
-    if condition_var do
-      quote do
-        require WaitForIt.Helpers
+    quote do
+      require WaitForIt.Helpers
 
-        _ =
-          Helpers.condition_var_case_wait(
-            unquote(expression),
-            unquote(condition_var),
-            unquote(timeout),
-            unquote(do_block),
-            unquote(else_block)
-          )
-      end
-    else
-      quote do
-        require WaitForIt.Helpers
-
-        Helpers.polling_case_wait(
-          unquote(expression),
-          unquote(frequency),
-          unquote(timeout),
-          unquote(do_block),
-          unquote(else_block)
-        )
-      end
+      Helpers.case_wait(
+        Helpers.make_function(unquote(expression)),
+        unquote(frequency),
+        unquote(timeout),
+        Helpers.localized_name(unquote(condition_var)),
+        Helpers.make_case_function(unquote(do_block)),
+        Helpers.make_function(unquote(else_block))
+      )
     end
   end
 
@@ -260,29 +239,16 @@ defmodule WaitForIt do
     do_block = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
 
-    if condition_var do
-      quote do
-        require WaitForIt.Helpers
+    quote do
+      require WaitForIt.Helpers
 
-        _ =
-          Helpers.condition_var_cond_wait(
-            unquote(condition_var),
-            unquote(timeout),
-            unquote(do_block),
-            unquote(else_block)
-          )
-      end
-    else
-      quote do
-        require WaitForIt.Helpers
-
-        Helpers.polling_cond_wait(
-          unquote(frequency),
-          unquote(timeout),
-          unquote(do_block),
-          unquote(else_block)
-        )
-      end
+      Helpers.cond_wait(
+        unquote(frequency),
+        unquote(timeout),
+        Helpers.localized_name(unquote(condition_var)),
+        Helpers.make_cond_function(unquote(do_block)),
+        Helpers.make_function(unquote(else_block))
+      )
     end
   end
 
@@ -297,7 +263,7 @@ defmodule WaitForIt do
   defmacro signal(condition_var) do
     quote do
       require WaitForIt.Helpers
-      Helpers.condition_var_signal(unquote(condition_var))
+      Helpers.condition_var_signal(Helpers.localized_name(unquote(condition_var)))
     end
   end
 end
