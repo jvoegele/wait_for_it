@@ -3,8 +3,6 @@ defmodule WaitForIt.Helpers do
 
   alias WaitForIt.ConditionVariable
 
-  @tag :__wait_for_it_result__
-
   defmacro localized_name(name) do
     if name do
       quote do: :"#{__MODULE__}.#{unquote(name)}"
@@ -25,6 +23,26 @@ defmodule WaitForIt.Helpers do
     end
   end
 
+  defmacro make_else_function(nil), do: nil
+
+  defmacro make_else_function([{:->, _, _} | _] = clauses) do
+    quote do
+      fn value ->
+        case value do
+          unquote(clauses)
+        end
+      end
+    end
+  end
+
+  defmacro make_else_function(else_block) do
+    quote do
+      fn _ ->
+        unquote(else_block)
+      end
+    end
+  end
+
   defmacro make_cond_function(cond_clauses) do
     quote do
       fn ->
@@ -38,17 +56,19 @@ defmodule WaitForIt.Helpers do
   def wait(expression, frequency, timeout, condition_var) do
     loop(frequency, timeout, condition_var, fn ->
       value = expression.()
-      if value, do: {:break, value}, else: :loop
+      if value, do: {:break, value}, else: {:loop, value}
     end)
     |> handle_wait_result()
   end
 
   def case_wait(expression, frequency, timeout, condition_var, do_block, else_block) do
     loop(frequency, timeout, condition_var, fn ->
+      value = expression.()
+
       try do
-        {:break, do_block.(expression.())}
+        {:break, do_block.(value)}
       rescue
-        CaseClauseError -> :loop
+        CaseClauseError -> {:loop, value}
       end
     end)
     |> handle_case_wait_result(else_block)
@@ -59,7 +79,7 @@ defmodule WaitForIt.Helpers do
       try do
         {:break, cond_block.()}
       rescue
-        CondClauseError -> :loop
+        CondClauseError -> {:loop, :ok}
       end
     end)
     |> handle_cond_wait_result(else_block)
@@ -83,15 +103,17 @@ defmodule WaitForIt.Helpers do
     eval_loop(function, fn -> sleep(condition_var, timeout, start_time) end)
   end
 
+  @tag :__wait_for_it_result__
+
   defp eval_loop(function, sleeper) do
     case function.() do
       {:break, value} ->
         {@tag, value}
 
-      :loop ->
+      {:loop, value} ->
         case sleeper.() do
           :loop -> eval_loop(function, sleeper)
-          {:timeout, timeout} -> {@tag, {:timeout, timeout}}
+          {:timeout, timeout} -> {@tag, {:timeout, timeout, value}}
         end
     end
   end
@@ -134,14 +156,14 @@ defmodule WaitForIt.Helpers do
 
   defp now, do: DateTime.to_unix(DateTime.utc_now(), :millisecond)
 
-  defp handle_wait_result({@tag, {:timeout, timeout}}), do: {:timeout, timeout}
+  defp handle_wait_result({@tag, {:timeout, timeout, _}}), do: {:timeout, timeout}
   defp handle_wait_result({@tag, value}), do: {:ok, value}
 
-  defp handle_case_wait_result({@tag, {:timeout, timeout}}, nil), do: {:timeout, timeout}
-  defp handle_case_wait_result({@tag, {:timeout, _timeout}}, else_block), do: else_block.()
+  defp handle_case_wait_result({@tag, {:timeout, timeout, _}}, nil), do: {:timeout, timeout}
+  defp handle_case_wait_result({@tag, {:timeout, _timeout, value}}, else_block), do: else_block.(value)
   defp handle_case_wait_result({@tag, value}, _else_block), do: value
 
-  defp handle_cond_wait_result({@tag, {:timeout, timeout}}, nil), do: {:timeout, timeout}
-  defp handle_cond_wait_result({@tag, {:timeout, _timeout}}, else_block), do: else_block.()
+  defp handle_cond_wait_result({@tag, {:timeout, timeout, _}}, nil), do: {:timeout, timeout}
+  defp handle_cond_wait_result({@tag, {:timeout, _timeout, _}}, else_block), do: else_block.()
   defp handle_cond_wait_result({@tag, value}, _else_block), do: value
 end

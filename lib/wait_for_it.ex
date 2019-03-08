@@ -185,7 +185,7 @@ defmodule WaitForIt do
         unquote(timeout),
         Helpers.localized_name(unquote(condition_var)),
         Helpers.make_case_function(unquote(do_block)),
-        Helpers.make_function(unquote(else_block))
+        Helpers.make_else_function(unquote(else_block))
       )
     end
   end
