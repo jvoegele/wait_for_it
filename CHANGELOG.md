@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.0] - 2019-03-08
+### Added
+- Add support for match clauses in else block of case_wait. [(Issue #9)](https://github.com/jvoegele/wait_for_it/issues/9)
+
 ## [1.1.1] - 2018-03-03
 ### Added
 - Add idle timeout feature for ConditionVariable.
