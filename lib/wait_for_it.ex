@@ -125,6 +125,10 @@ defmodule WaitForIt do
   `else` clause is provided and a timeout occurs, then the value of the `case_wait` expression is a
   tuple of the form `{:timeout, timeout_milliseconds}`.
 
+  The optional `else` clause may also take the form of match clauses, such as those in a case
+  expression. In this form, the `else` clause can match on the final value of the expression that
+  was evaluated before the timeout occurred. See the examples below for an example of this.
+
   ## Options
 
   See the WaitForIt module documentation for further discussion of these options.
@@ -140,8 +144,8 @@ defmodule WaitForIt do
       WaitForIt.case_wait Queue.get_messages(queue), timeout: 30_000, frequency: 100 do
         messages when length(messages) > 4 -> messages
       else
-        # If after 30 seconds we still don't have 4 messages, return an empty list.
-        []
+        # If after 30 seconds we still don't have 5 messages, just return the messages we do have.
+        messages -> messages
       end
 
     A thermostat that keeps temperature in a small range:
