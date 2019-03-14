@@ -6,9 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.1] - 2019-03-14
+### Added
+- Add `:pre_wait` option to all forms of waiting.
+
 ## [1.2.0] - 2019-03-08
 ### Added
-- Add support for match clauses in else block of case_wait. [(Issue #9)](https://github.com/jvoegele/wait_for_it/issues/9)
+- Add support for match clauses in `else` block of `case_wait`. [(Issue #9)](https://github.com/jvoegele/wait_for_it/issues/9)
 
 ## [1.1.1] - 2018-03-03
 ### Added
@@ -16,7 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.1.0] - 2017-09-02
 ### Added
-- Add support for else clause in case_wait and cond_wait. [(Issue #4)](https://github.com/jvoegele/wait_for_it/issues/4)
+- Add support for `else` clause in `case_wait` and `cond_wait`. [(Issue #4)](https://github.com/jvoegele/wait_for_it/issues/4)
 - Add this CHANGELOG
 
 ### Changed
