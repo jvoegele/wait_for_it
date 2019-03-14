@@ -53,6 +53,14 @@ defmodule WaitForIt.Helpers do
     end
   end
 
+  defmacro pre_wait(time) when is_integer(time) and time > 0 do
+    quote do: Process.sleep(unquote(time))
+  end
+
+  defmacro pre_wait(0) do
+    quote do: :ok
+  end
+
   def wait(expression, frequency, timeout, condition_var) do
     loop(frequency, timeout, condition_var, fn ->
       value = expression.()

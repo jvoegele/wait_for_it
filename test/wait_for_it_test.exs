@@ -46,7 +46,7 @@ defmodule WaitForItTest do
     end
 
     test "accepts a :frequency option" do
-      wait(increment_counter() > 4, frequency: 1)
+      wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
       assert 5 == Process.get(:counter)
     end
 
@@ -83,7 +83,7 @@ defmodule WaitForItTest do
     end
 
     test "accepts a :frequency option" do
-      case_wait increment_counter(), frequency: 1 do
+      case_wait increment_counter(), frequency: 1, pre_wait: 1 do
         5 -> 5
       end
 
@@ -169,7 +169,7 @@ defmodule WaitForItTest do
 
     test "accepts a :frequency option" do
       5 =
-        cond_wait frequency: 1 do
+        cond_wait frequency: 1, pre_wait: 1 do
           (
             count = increment_counter()
             count > 4

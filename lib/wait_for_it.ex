@@ -25,6 +25,7 @@ defmodule WaitForIt do
   * `:timeout` - the amount of time to wait (in milliseconds) before giving up
   * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
   * `:signal` - disable polling and use a condition variable of the given name instead
+  * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   The `:signal` option warrants further explanation. By default, all three forms of waiting use
   polling to periodically re-evaluate conditions to determine if waiting should continue. The
@@ -75,6 +76,7 @@ defmodule WaitForIt do
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
     * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   ## Examples
 
@@ -93,9 +95,11 @@ defmodule WaitForIt do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
     condition_var = Keyword.get(opts, :signal, nil)
+    pre_wait = Keyword.get(opts, :pre_wait, 0)
 
     quote do
       require WaitForIt.Helpers
+      Helpers.pre_wait(unquote(pre_wait))
 
       Helpers.wait(
         Helpers.make_function(unquote(expression)),
@@ -136,6 +140,7 @@ defmodule WaitForIt do
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
     * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   ## Examples
 
@@ -179,9 +184,11 @@ defmodule WaitForIt do
     condition_var = Keyword.get(opts, :signal)
     do_block = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
+    pre_wait = Keyword.get(opts, :pre_wait, 0)
 
     quote do
       require WaitForIt.Helpers
+      Helpers.pre_wait(unquote(pre_wait))
 
       Helpers.case_wait(
         Helpers.make_function(unquote(expression)),
@@ -220,6 +227,7 @@ defmodule WaitForIt do
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
     * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   ## Examples
 
@@ -242,9 +250,11 @@ defmodule WaitForIt do
     condition_var = Keyword.get(opts, :signal)
     do_block = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
+    pre_wait = Keyword.get(opts, :pre_wait, 0)
 
     quote do
       require WaitForIt.Helpers
+      Helpers.pre_wait(unquote(pre_wait))
 
       Helpers.cond_wait(
         unquote(frequency),
