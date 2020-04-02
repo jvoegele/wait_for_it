@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.3.0] - 2020-04-02
+### Changed
+- Use DynamicSupervisor to manage condition variables.
+
 ## [1.2.1] - 2019-03-14
 ### Added
 - Add `:pre_wait` option to all forms of waiting.
