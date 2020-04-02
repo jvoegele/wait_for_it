@@ -11,24 +11,24 @@ defmodule WaitForIt.ConditionVariableTest do
 
   describe "start_link/1" do
     test "registers new process" do
-      {:ok, pid} = ConditionVariable.start_link(:new_condition_var)
+      {:ok, pid} = ConditionVariable.start_link(name: :new_condition_var)
       assert [{pid, nil}] == Registry.lookup(ConditionVariable.registry(), :new_condition_var)
     end
 
     test "returns {:error, {:already_started, pid}} if already registered" do
-      {:ok, pid} = ConditionVariable.start_link(:condition_var)
-      assert {:error, {:already_started, ^pid}} = ConditionVariable.start_link(:condition_var)
+      {:ok, pid} = ConditionVariable.start_link(name: :condition_var)
+      assert {:error, {:already_started, ^pid}} = ConditionVariable.start_link(name: :condition_var)
     end
   end
 
   test "wait blocks until signal received" do
-    {:ok, _pid} = ConditionVariable.start_link(:cond_wait)
+    {:ok, _pid} = ConditionVariable.start_link(name: :cond_wait)
     Task.async(fn -> for _ <- 1..10, do: ConditionVariable.signal(:cond_wait) end)
     :ok = ConditionVariable.wait(:cond_wait)
   end
 
   test "wait times out if no signal received" do
-    {:ok, _pid} = ConditionVariable.start_link(:cond_wait)
+    {:ok, _pid} = ConditionVariable.start_link(name: :cond_wait)
     :timeout = ConditionVariable.wait(:cond_wait, timeout: 10)
   end
 
