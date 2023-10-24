@@ -25,10 +25,10 @@ defmodule WaitForIt.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.21", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
-      {:credo, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:stream_data, "~> 0.4", only: [:dev, :test]}
+      {:ex_doc, "~> 0.30.9", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:stream_data, "~> 0.6", only: [:dev, :test]}
     ]
   end
 
