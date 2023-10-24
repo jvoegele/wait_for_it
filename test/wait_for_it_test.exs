@@ -69,6 +69,47 @@ defmodule WaitForItTest do
     end
   end
 
+  describe "wait!/2" do
+    test "waits for expression to be truthy" do
+      assert wait!(increment_counter() > 2)
+      assert 3 == Process.get(:counter)
+    end
+
+    test "accepts a :frequency option" do
+      wait!(increment_counter() > 4, frequency: 1, pre_wait: 1)
+      assert 5 == Process.get(:counter)
+    end
+
+    test "accepts a :timeout option" do
+      timeout = 10
+
+      assert_raise WaitForIt.TimeoutError, fn ->
+        wait!(increment_counter() > timeout, timeout: timeout, frequency: 1)
+      end
+
+      assert Process.get(:counter) < timeout
+    end
+
+    test "accepts a :signal option" do
+      {:ok, counter} = init_counter(0)
+      _task = increment_task(counter, max: 1000, signal: :counter_wait)
+      assert wait!(get_counter(counter) > 99, signal: :counter_wait)
+      assert get_counter(counter) > 99
+    end
+
+    test "times out if signal not received" do
+      {:ok, counter} = init_counter(0)
+
+      %WaitForIt.TimeoutError{timeout: timeout, last_value: last_value} =
+        assert_raise WaitForIt.TimeoutError, fn ->
+          wait!(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
+        end
+
+      assert timeout == 10
+      assert last_value == false
+    end
+  end
+
   describe "case_wait/2" do
     test "waits for expression to match one of the given patterns" do
       {:ok, counter} = init_counter(0)

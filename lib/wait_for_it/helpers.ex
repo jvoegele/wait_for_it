@@ -69,6 +69,14 @@ defmodule WaitForIt.Helpers do
     |> handle_wait_result()
   end
 
+  def wait!(expression, frequency, timeout, condition_var) do
+    loop(frequency, timeout, condition_var, fn ->
+      value = expression.()
+      if value, do: {:break, value}, else: {:loop, value}
+    end)
+    |> handle_wait_bang_result()
+  end
+
   def case_wait(expression, frequency, timeout, condition_var, do_block, else_block) do
     loop(frequency, timeout, condition_var, fn ->
       value = expression.()
@@ -166,6 +174,12 @@ defmodule WaitForIt.Helpers do
 
   defp handle_wait_result({@tag, {:timeout, timeout, _}}), do: {:timeout, timeout}
   defp handle_wait_result({@tag, value}), do: {:ok, value}
+
+  defp handle_wait_bang_result({@tag, {:timeout, timeout, value}}) do
+    raise WaitForIt.TimeoutError, timeout: timeout, wait_type: :wait!, last_value: value
+  end
+
+  defp handle_wait_bang_result({@tag, value}), do: value
 
   defp handle_case_wait_result({@tag, {:timeout, timeout, _}}, nil), do: {:timeout, timeout}
 

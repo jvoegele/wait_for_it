@@ -111,6 +111,39 @@ defmodule WaitForIt do
   end
 
   @doc ~S"""
+  Wait until the given `expression` evaluates to a truthy value.
+
+  Returns the truthy value or raises a `WaitForIt.TimeoutError` if a timeout occurs.
+
+  ## Options
+
+  See the WaitForIt module documentation for further discussion of these options.
+
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
+    * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
+  """
+  defmacro wait!(expression, opts \\ []) do
+    frequency = Keyword.get(opts, :frequency, 100)
+    timeout = Keyword.get(opts, :timeout, 5_000)
+    condition_var = Keyword.get(opts, :signal, nil)
+    pre_wait = Keyword.get(opts, :pre_wait, 0)
+
+    quote do
+      require WaitForIt.Helpers
+      Helpers.pre_wait(unquote(pre_wait))
+
+      Helpers.wait!(
+        Helpers.make_function(unquote(expression)),
+        unquote(frequency),
+        unquote(timeout),
+        Helpers.localized_name(unquote(condition_var))
+      )
+    end
+  end
+
+  @doc ~S"""
   Wait until the given `expression` matches one of the case clauses in the given block.
 
   Returns the value of the matching clause, the value of the optional `else` clause,
