@@ -115,7 +115,7 @@ defmodule WaitForItTest do
     end
 
     property "times out if signal not received" do
-      check all timeout <- integer(5..50) do
+      check all(timeout <- integer(5..50)) do
         {:ok, counter} = init_counter(0)
 
         result =
@@ -238,8 +238,10 @@ defmodule WaitForItTest do
 
   describe "multiple waiters using :signal option" do
     property "all wait until they receive the signal" do
-      check all factor <- integer(1..10),
-                waiter_count <- integer(1..20) do
+      check all(
+              factor <- integer(1..10),
+              waiter_count <- integer(1..20)
+            ) do
         {:ok, counter} = init_counter(0)
 
         tasks =
@@ -263,10 +265,12 @@ defmodule WaitForItTest do
     end
 
     property "death of waiting process does not affect other waiters" do
-      check all waiter_count <- integer(3..50),
-                kill_count <- integer(0..3),
-                kill_reason <- member_of([:normal, :kill, :shutdown, :die]),
-                kill_count <= waiter_count do
+      check all(
+              waiter_count <- integer(3..50),
+              kill_count <- integer(0..3),
+              kill_reason <- member_of([:normal, :kill, :shutdown, :die]),
+              kill_count <= waiter_count
+            ) do
         {:ok, counter} = init_counter(0)
 
         {:ok, task_supervisor} = Task.Supervisor.start_link()

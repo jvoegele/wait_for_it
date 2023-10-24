@@ -11,7 +11,7 @@ defmodule WaitForIt.Helpers do
 
   defmacro make_function(nil), do: nil
 
-  defmacro make_function(expression), do: quote do: fn -> unquote(expression) end
+  defmacro make_function(expression), do: quote(do: fn -> unquote(expression) end)
 
   defmacro make_case_function(cases) do
     quote do
@@ -168,7 +168,10 @@ defmodule WaitForIt.Helpers do
   defp handle_wait_result({@tag, value}), do: {:ok, value}
 
   defp handle_case_wait_result({@tag, {:timeout, timeout, _}}, nil), do: {:timeout, timeout}
-  defp handle_case_wait_result({@tag, {:timeout, _timeout, value}}, else_block), do: else_block.(value)
+
+  defp handle_case_wait_result({@tag, {:timeout, _timeout, value}}, else_block),
+    do: else_block.(value)
+
   defp handle_case_wait_result({@tag, value}, _else_block), do: value
 
   defp handle_cond_wait_result({@tag, {:timeout, timeout, _}}, nil), do: {:timeout, timeout}
