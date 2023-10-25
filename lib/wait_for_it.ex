@@ -1,6 +1,6 @@
 defmodule WaitForIt do
   @moduledoc ~S"""
-  WaitForIt provides macros for various ways to wait for things to happen.
+  `WaitForIt` provides macros for various ways of waiting for things to happen.
 
   Since most Elixir systems are highly concurrent there must be a way to coordinate and synchronize
   the processes in the system. While the language provides features (such as `Process.sleep/1` and
@@ -62,12 +62,26 @@ defmodule WaitForIt do
   re-evaluate their waiting conditions to determine if they should continue to wait or not.
   """
 
-  alias WaitForIt.Helpers
-
   @doc ~S"""
   Wait until the given `expression` evaluates to a truthy value.
 
-  Returns `{:ok, value}` or `{:timeout, timeout_milliseconds}`.
+  Returns the truthy value that ended the wait, or the last falsy value evaluated if a timeout
+  occurred.
+
+  > #### Warning {: .warning}
+  >
+  > The value returned from this macro has changed as of version 2.0.
+  >
+  > In previous versions, `{:ok, value}` would be returned for the success case, and
+  > `{:timeout, timeout_milliseconds}` would be returned for the timeout case.
+  >
+  > As of version 2.0, the final value of the wait expression is returned directly, which will
+  > be a truthy value for the success case and a falsy value for the timeout case. This allows
+  > the `wait/2` macro to be used in conditional expressions, such as in `Kernel.if/2`, or in
+  > assertions in tests.
+  >
+  > To enable the previous behavior of wrapping the return value in a tuple, use the
+  > `WaitForIt.V1.wait  /2` macro instead.
 
   ## Options
 
@@ -86,10 +100,16 @@ defmodule WaitForIt do
 
     Wait up to one minute for a particular record to appear in the database:
 
-      case WaitForIt.wait Repo.get(Post, 42), frequency: 1000, timeout: 60_000 do
-        {:ok, data} -> IO.inspect(data)
-        {:timeout, timeout} -> IO.puts("Gave up after #{timeout} milliseconds")
+      if data = WaitForIt.wait Repo.get(Post, 42), frequency: 1000, timeout: :timer.seconds(60) do
+        IO.inspect(data)
+      else
+        IO.puts("Gave up after #{timeout} milliseconds")
       end
+
+    Assert that a database record is created by some asynchronous process:
+
+      do_some_async_work()
+      assert %Post{id: 42} = WaitForIt.wait Repo.get(Post, 42)
   """
   defmacro wait(expression, opts \\ []) do
     frequency = Keyword.get(opts, :frequency, 100)
@@ -99,13 +119,13 @@ defmodule WaitForIt do
 
     quote do
       require WaitForIt.Helpers
-      Helpers.pre_wait(unquote(pre_wait))
+      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
 
-      Helpers.wait(
-        Helpers.make_function(unquote(expression)),
+      WaitForIt.Helpers.wait(
+        WaitForIt.Helpers.make_function(unquote(expression)),
         unquote(frequency),
         unquote(timeout),
-        Helpers.localized_name(unquote(condition_var))
+        WaitForIt.Helpers.localized_name(unquote(condition_var))
       )
     end
   end
@@ -113,7 +133,8 @@ defmodule WaitForIt do
   @doc ~S"""
   Wait until the given `expression` evaluates to a truthy value.
 
-  Returns the truthy value or raises a `WaitForIt.TimeoutError` if a timeout occurs.
+  Returns the truthy value that ended the wait,  or raises a `WaitForIt.TimeoutError` if a timeout
+  occurs.
 
   ## Options
 
@@ -132,13 +153,13 @@ defmodule WaitForIt do
 
     quote do
       require WaitForIt.Helpers
-      Helpers.pre_wait(unquote(pre_wait))
+      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
 
-      Helpers.wait!(
-        Helpers.make_function(unquote(expression)),
+      WaitForIt.Helpers.wait!(
+        WaitForIt.Helpers.make_function(unquote(expression)),
         unquote(frequency),
         unquote(timeout),
-        Helpers.localized_name(unquote(condition_var))
+        WaitForIt.Helpers.localized_name(unquote(condition_var))
       )
     end
   end
@@ -221,15 +242,15 @@ defmodule WaitForIt do
 
     quote do
       require WaitForIt.Helpers
-      Helpers.pre_wait(unquote(pre_wait))
+      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
 
-      Helpers.case_wait(
-        Helpers.make_function(unquote(expression)),
+      WaitForIt.Helpers.case_wait(
+        WaitForIt.Helpers.make_function(unquote(expression)),
         unquote(frequency),
         unquote(timeout),
-        Helpers.localized_name(unquote(condition_var)),
-        Helpers.make_case_function(unquote(do_block)),
-        Helpers.make_else_function(unquote(else_block))
+        WaitForIt.Helpers.localized_name(unquote(condition_var)),
+        WaitForIt.Helpers.make_case_function(unquote(do_block)),
+        WaitForIt.Helpers.make_else_function(unquote(else_block))
       )
     end
   end
@@ -287,14 +308,14 @@ defmodule WaitForIt do
 
     quote do
       require WaitForIt.Helpers
-      Helpers.pre_wait(unquote(pre_wait))
+      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
 
-      Helpers.cond_wait(
+      WaitForIt.Helpers.cond_wait(
         unquote(frequency),
         unquote(timeout),
-        Helpers.localized_name(unquote(condition_var)),
-        Helpers.make_cond_function(unquote(do_block)),
-        Helpers.make_function(unquote(else_block))
+        WaitForIt.Helpers.localized_name(unquote(condition_var)),
+        WaitForIt.Helpers.make_cond_function(unquote(do_block)),
+        WaitForIt.Helpers.make_function(unquote(else_block))
       )
     end
   end
@@ -310,7 +331,10 @@ defmodule WaitForIt do
   defmacro signal(condition_var) do
     quote do
       require WaitForIt.Helpers
-      Helpers.condition_var_signal(Helpers.localized_name(unquote(condition_var)))
+
+      WaitForIt.Helpers.condition_var_signal(
+        WaitForIt.Helpers.localized_name(unquote(condition_var))
+      )
     end
   end
 end

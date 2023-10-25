@@ -172,8 +172,8 @@ defmodule WaitForIt.Helpers do
 
   defp now, do: DateTime.to_unix(DateTime.utc_now(), :millisecond)
 
-  defp handle_wait_result({@tag, {:timeout, timeout, _}}), do: {:timeout, timeout}
-  defp handle_wait_result({@tag, value}), do: {:ok, value}
+  defp handle_wait_result({@tag, {:timeout, _timeout, value}}), do: value
+  defp handle_wait_result({@tag, value}), do: value
 
   defp handle_wait_bang_result({@tag, {:timeout, timeout, value}}) do
     raise WaitForIt.TimeoutError, timeout: timeout, wait_type: :wait!, last_value: value

@@ -1,7 +1,10 @@
 defmodule WaitForItTest do
   use ExUnit.Case
   use ExUnitProperties
+
   import WaitForIt
+
+  doctest WaitForIt
 
   defp increment_counter do
     counter = (Process.get(:counter) || 0) + 1
@@ -41,31 +44,31 @@ defmodule WaitForItTest do
 
   describe "wait/2" do
     test "waits for expression to be truthy" do
-      {:ok, true} = wait(increment_counter() > 2)
+      assert wait(increment_counter() > 2) == true
       assert 3 == Process.get(:counter)
     end
 
     test "accepts a :frequency option" do
-      wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
+      assert wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
       assert 5 == Process.get(:counter)
     end
 
     test "accepts a :timeout option" do
       timeout = 10
-      {:timeout, ^timeout} = wait(increment_counter() > timeout, timeout: timeout, frequency: 1)
+      refute wait(increment_counter() > timeout, timeout: timeout, frequency: 1)
       assert Process.get(:counter) < timeout
     end
 
     test "accepts a :signal option" do
       {:ok, counter} = init_counter(0)
       _task = increment_task(counter, max: 1000, signal: :counter_wait)
-      assert {:ok, true} == wait(get_counter(counter) > 99, signal: :counter_wait)
+      assert wait(get_counter(counter) > 99, signal: :counter_wait) == true
       assert get_counter(counter) > 99
     end
 
     test "times out if signal not received" do
       {:ok, counter} = init_counter(0)
-      assert {:timeout, 10} == wait(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
+      refute wait(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
     end
   end
 
