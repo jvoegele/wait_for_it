@@ -62,6 +62,15 @@ defmodule WaitForIt do
   re-evaluate their waiting conditions to determine if they should continue to wait or not.
   """
 
+  @type wait_expression :: Macro.t()
+
+  @type wait_opts :: [
+          timeout: non_neg_integer(),
+          frequency: non_neg_integer(),
+          pre_wait: non_neg_integer(),
+          signal: atom() | nil
+        ]
+
   @doc ~S"""
   Wait until the given `expression` evaluates to a truthy value.
 
@@ -112,21 +121,11 @@ defmodule WaitForIt do
       assert %Post{id: 42} = WaitForIt.wait Repo.get(Post, 42)
   """
   defmacro wait(expression, opts \\ []) do
-    frequency = Keyword.get(opts, :frequency, 100)
-    timeout = Keyword.get(opts, :timeout, 5_000)
-    condition_var = Keyword.get(opts, :signal, nil)
-    pre_wait = Keyword.get(opts, :pre_wait, 0)
-
     quote do
-      require WaitForIt.Helpers
-      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
+      require WaitForIt.Waitable.BasicWait
 
-      WaitForIt.Helpers.wait(
-        WaitForIt.Helpers.make_function(unquote(expression)),
-        unquote(frequency),
-        unquote(timeout),
-        WaitForIt.Helpers.localized_name(unquote(condition_var))
-      )
+      waitable = WaitForIt.Waitable.BasicWait.create(unquote(expression))
+      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
     end
   end
 
@@ -146,21 +145,11 @@ defmodule WaitForIt do
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
   """
   defmacro wait!(expression, opts \\ []) do
-    frequency = Keyword.get(opts, :frequency, 100)
-    timeout = Keyword.get(opts, :timeout, 5_000)
-    condition_var = Keyword.get(opts, :signal, nil)
-    pre_wait = Keyword.get(opts, :pre_wait, 0)
-
     quote do
-      require WaitForIt.Helpers
-      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
+      require WaitForIt.Waitable.BasicWait
 
-      WaitForIt.Helpers.wait!(
-        WaitForIt.Helpers.make_function(unquote(expression)),
-        unquote(frequency),
-        unquote(timeout),
-        WaitForIt.Helpers.localized_name(unquote(condition_var))
-      )
+      waitable = WaitForIt.Waitable.BasicWait.create(unquote(expression))
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
     end
   end
 
@@ -168,7 +157,7 @@ defmodule WaitForIt do
   Wait until the given `expression` matches one of the case clauses in the given block.
 
   Returns the value of the matching clause, the value of the optional `else` clause,
-  or a tuple of the form `{:timeout, timeout_milliseconds}`.
+  or the last evaluated value of the expression in the event of a timeout.
 
   The `do` block passed to this macro must be a series of case clauses exactly like a built-in
   Elixir `case` expression. Just like a `case` expression, the clauses will attempt to be matched
@@ -180,8 +169,8 @@ defmodule WaitForIt do
   An optional `else` clause may also be used to provide the value in case of a timeout. If an
   `else` clause is provided and a timeout occurs, then the `else` clause will be evaluated and
   the resulting value of the `else` clause becomes the value of the `case_wait` expression. If no
-  `else` clause is provided and a timeout occurs, then the value of the `case_wait` expression is a
-  tuple of the form `{:timeout, timeout_milliseconds}`.
+  `else` clause is provided and a timeout occurs, then the value of the `case_wait` expression is
+  the last evaluated value of the expression.
 
   The optional `else` clause may also take the form of match clauses, such as those in a case
   expression. In this form, the `else` clause can match on the final value of the expression that
@@ -233,25 +222,20 @@ defmodule WaitForIt do
       end
   """
   defmacro case_wait(expression, opts \\ [], blocks) do
-    frequency = Keyword.get(opts, :frequency, 100)
-    timeout = Keyword.get(opts, :timeout, 5_000)
-    condition_var = Keyword.get(opts, :signal)
-    do_block = Keyword.get(blocks, :do)
+    case_clauses = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
-    pre_wait = Keyword.get(opts, :pre_wait, 0)
 
     quote do
-      require WaitForIt.Helpers
-      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
+      require WaitForIt.Waitable.CaseWait
 
-      WaitForIt.Helpers.case_wait(
-        WaitForIt.Helpers.make_function(unquote(expression)),
-        unquote(frequency),
-        unquote(timeout),
-        WaitForIt.Helpers.localized_name(unquote(condition_var)),
-        WaitForIt.Helpers.make_case_function(unquote(do_block)),
-        WaitForIt.Helpers.make_else_function(unquote(else_block))
-      )
+      waitable =
+        WaitForIt.Waitable.CaseWait.create(
+          unquote(expression),
+          unquote(case_clauses),
+          unquote(else_block)
+        )
+
+      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
     end
   end
 
@@ -259,7 +243,7 @@ defmodule WaitForIt do
   Wait until one of the expressions in the given block evaluates to a truthy value.
 
   Returns the value corresponding with the matching expression, the value of the optional `else`
-  clause, or a tuple of the form `{:timeout, timeout_milliseconds}`.
+  clause, or `nil` in the event of a timeout.
 
   The `do` block passed to this macro must be a series of expressions exactly like a built-in
   Elixir `cond` expression. Just like a `cond` expression, the embedded expresions will be
@@ -271,8 +255,8 @@ defmodule WaitForIt do
   An optional `else` clause may also be used to provide the value in case of a timeout. If an
   `else` clause is provided and a timeout occurs, then the `else` clause will be evaluated and
   the resulting value of the `else` clause becomes the value of the `cond_wait` expression. If no
-  `else` clause is provided and a timeout occurs, then the value of the `cond_wait` expression is a
-  tuple of the form `{:timeout, timeout_milliseconds}`.
+  `else` clause is provided and a timeout occurs, then the value of the `cond_wait` expression is
+  `nil`.
 
   ## Options
 
@@ -299,42 +283,46 @@ defmodule WaitForIt do
       end
   """
   defmacro cond_wait(opts \\ [], blocks) do
-    frequency = Keyword.get(opts, :frequency, 100)
-    timeout = Keyword.get(opts, :timeout, 5_000)
-    condition_var = Keyword.get(opts, :signal)
-    do_block = Keyword.get(blocks, :do)
+    cond_clauses = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
-    pre_wait = Keyword.get(opts, :pre_wait, 0)
 
     quote do
-      require WaitForIt.Helpers
-      WaitForIt.Helpers.pre_wait(unquote(pre_wait))
+      require WaitForIt.Waitable.CondWait
 
-      WaitForIt.Helpers.cond_wait(
-        unquote(frequency),
-        unquote(timeout),
-        WaitForIt.Helpers.localized_name(unquote(condition_var)),
-        WaitForIt.Helpers.make_cond_function(unquote(do_block)),
-        WaitForIt.Helpers.make_function(unquote(else_block))
-      )
+      waitable =
+        WaitForIt.Waitable.CondWait.create(
+          unquote(cond_clauses),
+          unquote(else_block)
+        )
+
+      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
     end
   end
 
+  # defmacro with_wait(with_clauses, blocks) do
+  #   # TODO:
+  #   # Implement this macro.
+  #   #
+  #   # Consider using `<~` for waiting version of the `<-` operator.
+  #   # Figure out how to pass waiting options (e.g. timeout & frequency) to the individual 
+  #   # expressions in the with_clauses. Should the RHS be a 2-tuple of the form
+  #   # `{expression, wait_opts}`? Or should there be another named macro that builds such a tuple?
+  #   #
+  #   # Implementation ideas:
+  #   # Collect all of the with_clauses and group by `<~` (waiting) and `<-` non-waiting clauses.
+  #   # Waiting clauses use the same waiting semantics as the other wait forms in this module.
+  #   # Non-waiting clauses are perhaps evaluated immediatelY? But what if there are dependencies
+  #   # between clauses? Can we figure that out? Or perhaps we don't need to if we still evaluate all
+  #   # of the clauses serially, applying waiting semantics whenever applicable.
+  # end
+
   @doc ~S"""
-  Send a signal to the given condition variable to indicate that any processes waiting on the
-  condition variable should re-evaluate their wait conditions.
-
-  The caller of `signal` must be in the same Elixir module as any waiters on the same condition
-  variable since the module is used as a namespace for condition variables. This is to prevent
-  accidental name collisions as well as to enforce good practice for encapsulation.
+  Send a signal to indicate that any processes waiting on the signal should re-evaluate their
+  wait conditions.
   """
-  defmacro signal(condition_var) do
-    quote do
-      require WaitForIt.Helpers
-
-      WaitForIt.Helpers.condition_var_signal(
-        WaitForIt.Helpers.localized_name(unquote(condition_var))
-      )
-    end
+  def signal(signal) do
+    Registry.dispatch(WaitForIt.SignalRegistry, signal, fn waiters ->
+      for {pid, _env} <- waiters, do: send(pid, {:wait_for_it_signal, signal})
+    end)
   end
 end

@@ -31,12 +31,12 @@ defmodule WaitForItTest do
   defp increment_task(counter_pid, opts) do
     sleep_time = Keyword.get(opts, :sleep_time, 0)
     max = Keyword.get(opts, :max, 1_000_000)
-    condition_var = Keyword.get(opts, :signal)
+    signal = Keyword.get(opts, :signal)
 
     Task.start_link(fn ->
       for _ <- 1..max do
         increment_counter(counter_pid)
-        if condition_var, do: signal(condition_var)
+        if signal, do: WaitForIt.signal(signal)
         Process.sleep(sleep_time)
       end
     end)
@@ -68,7 +68,7 @@ defmodule WaitForItTest do
 
     test "times out if signal not received" do
       {:ok, counter} = init_counter(0)
-      refute wait(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
+      refute wait(get_counter(counter) > 99, signal: :wait_in_vain, timeout: 10)
     end
   end
 
@@ -105,7 +105,7 @@ defmodule WaitForItTest do
 
       %WaitForIt.TimeoutError{timeout: timeout, last_value: last_value} =
         assert_raise WaitForIt.TimeoutError, fn ->
-          wait!(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
+          wait!(get_counter(counter) > 99, signal: :wait_in_vain, timeout: 10)
         end
 
       assert timeout == 10
@@ -137,12 +137,13 @@ defmodule WaitForItTest do
     test "accepts a :timeout option" do
       timeout = 10
 
-      {:timeout, ^timeout} =
+      last_value =
         case_wait increment_counter(), timeout: timeout, frequency: 1 do
           11 -> 11
         end
 
-      assert Process.get(:counter) < timeout
+      assert is_integer(last_value) and last_value < timeout
+      assert Process.get(:counter) == last_value
     end
 
     test "accepts a :signal option" do
@@ -163,11 +164,12 @@ defmodule WaitForItTest do
         {:ok, counter} = init_counter(0)
 
         result =
-          case_wait get_counter(counter), signal: :counter_wait, timeout: timeout do
+          case_wait get_counter(counter), signal: :wait_in_vain, timeout: timeout do
             100 -> 100
           end
 
-        assert result == {:timeout, timeout}
+        assert is_integer(result)
+        assert result < timeout
       end
     end
 
@@ -175,7 +177,7 @@ defmodule WaitForItTest do
       {:ok, counter} = init_counter(0)
 
       result =
-        case_wait get_counter(counter), signal: :counter_wait, timeout: 10 do
+        case_wait get_counter(counter), signal: :wait_in_vain, timeout: 10 do
           100 -> 100
         else
           {:timeout, :else_clause}
@@ -233,11 +235,12 @@ defmodule WaitForItTest do
     test "accepts a :timeout option" do
       timeout = 10
 
-      {:timeout, ^timeout} =
+      value =
         cond_wait timeout: timeout, frequency: 1 do
           11 == increment_counter() -> :ok
         end
 
+      assert is_nil(value)
       assert Process.get(:counter) < timeout
     end
 
@@ -256,21 +259,20 @@ defmodule WaitForItTest do
 
     test "times out if signal not received" do
       {:ok, counter} = init_counter(0)
-      timeout = 10
 
       result =
         cond_wait signal: :counter_wait, timeout: 10 do
           get_counter(counter) > 99 -> :will_never_get_here
         end
 
-      assert result == {:timeout, timeout}
+      assert is_nil(result)
     end
 
     test "accepts an else block" do
       {:ok, _counter} = init_counter(0)
 
       result =
-        cond_wait signal: :counter_wait, timeout: 10 do
+        cond_wait signal: :wait_in_vain, timeout: 10 do
           :answer == 42 -> true
         else
           {:timeout, :else_clause}
@@ -278,6 +280,24 @@ defmodule WaitForItTest do
 
       assert result == {:timeout, :else_clause}
     end
+  end
+
+  describe "with_wait" do
+    # test "this probably won't even be a thing in the end" do
+    #   with_wait {:ok, "bar"} <~ {Map.fetch(%{}, :foo), timeout: 10},
+    #             true <~ {Process.alive?(self()), frequency: 20} do
+    #     {:ok, "Yippee!"}
+    #   else
+    #     :error -> {:error, "whatevs"}
+    #   end
+    #
+    #   with_wait {:ok, value} <- wait(Map.fetch(%{}, :foo), timeout: 10),
+    #             :error <- wait(Map.fetch(%{}, :bar), frequency: 8) do
+    #     {:ok, "Yippee!"}
+    #   else
+    #     :error -> {:error, "whatevs"}
+    #   end
+    # end
   end
 
   describe "multiple waiters using :signal option" do

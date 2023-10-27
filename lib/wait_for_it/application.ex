@@ -5,6 +5,7 @@ defmodule WaitForIt.Application do
 
   def start(_type, _args) do
     children = [
+      {Registry, keys: :duplicate, name: WaitForIt.SignalRegistry},
       {Registry, keys: :unique, name: WaitForIt.ConditionVariable.registry()},
       WaitForIt.ConditionVariable.Supervisor
     ]
