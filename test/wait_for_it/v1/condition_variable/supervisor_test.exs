@@ -1,6 +1,8 @@
-defmodule WaitForIt.ConditionVariable.SupervisorTest do
+defmodule WaitForIt.V1.ConditionVariable.SupervisorTest do
   use ExUnit.Case
-  alias WaitForIt.ConditionVariable
+  alias WaitForIt.V1.ConditionVariable
+
+  @moduletag :legacy
 
   describe "create_condition_variable/0" do
     test "starts a new child process and returns {:ok, pid}" do

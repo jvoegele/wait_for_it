@@ -24,14 +24,14 @@ defmodule WaitForIt do
 
   * `:timeout` - the amount of time to wait (in milliseconds) before giving up
   * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
-  * `:signal` - disable polling and use a condition variable of the given name instead
+  * `:signal` - disable polling and use a signal of the given name instead
   * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   The `:signal` option warrants further explanation. By default, all three forms of waiting use
   polling to periodically re-evaluate conditions to determine if waiting should continue. The
   frequency of polling is controlled by the `:frequency` option. However, if the `:signal` option
   is given it disables polling altogether. Instead of periodically re-evaluating conditions at a
-  particular frequency, a _condition variable_ is used to signal when conditions should be
+  particular frequency, a signaling mechanism is used to signal when conditions should be
   re-evaluated. It is expected that the `signal` macro will be used to unblock the waiting code
   in order to re-evaluate conditions. For example, imagine a typical producer-consumer problem in
   which a consumer process waits for items to appear in some buffer while a separate producer
@@ -52,14 +52,10 @@ defmodule WaitForIt do
   WaitForIt.signal(:wait_for_buffer)
   ```
 
-  Notice that the same condition variable name `:wait_for_buffer` is used in both cases. It is
-  important to note that when using condition variables for signaling like this, both the `wait`
-  invocation and the `signal` invocation should be in the same Elixir module. This is because
-  `WaitForIt` uses the calling module as a namespace for condition variable names to prevent
-  accidental name collisions with other registered processes in the application. Also note that
-  just because a condition variable has been signalled does not necessarily mean that any waiters
-  on that condition variable can stop waiting. Rather, a signal indicates that waiters should
-  re-evaluate their waiting conditions to determine if they should continue to wait or not.
+  Notice that the same signal name `:wait_for_buffer` is used in both cases. Note that just
+  because a signal has been emitted does not necessarily mean that any waiters on that condition
+  variable can stop waiting. Rather, a signal indicates that waiters should re-evaluate their
+  waiting conditions to determine if they should continue to wait or not.
   """
 
   @type wait_expression :: Macro.t()
@@ -98,7 +94,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
-    * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:signal` - disable polling and use a signal of the given name instead
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   ## Examples
@@ -141,7 +137,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
-    * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:signal` - disable polling and use a signal of the given name instead
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
   """
   defmacro wait!(expression, opts \\ []) do
@@ -182,7 +178,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
-    * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:signal` - disable polling and use a signal of the given name instead
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   ## Examples
@@ -264,7 +260,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
-    * `:signal` - disable polling and use a condition variable of the given name instead
+    * `:signal` - disable polling and use a signal of the given name instead
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
 
   ## Examples

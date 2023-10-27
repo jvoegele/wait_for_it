@@ -1,6 +1,8 @@
-defmodule WaitForIt.ConditionVariableTest do
+defmodule WaitForIt.V1.ConditionVariableTest do
   use ExUnit.Case
-  alias WaitForIt.ConditionVariable
+  alias WaitForIt.V1.ConditionVariable
+
+  @moduletag :legacy
 
   describe "start_link/0" do
     test "starts a new process and returns {:ok, pid}" do
