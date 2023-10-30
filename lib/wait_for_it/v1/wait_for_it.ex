@@ -1,9 +1,6 @@
 defmodule WaitForIt.V1 do
-  @moduledoc ~S"""
-  Legacy module for backward compatibility only.
-
-  New code should not use this module. The main `WaitForIt` module should be used instead.
-  """
+  @moduledoc deprecated:
+               "This is a legacy module for backward compatibility only; new code should use the main WaitForIt module instead"
 
   @doc ~S"""
   Wait until the given `expression` evaluates to a truthy value.

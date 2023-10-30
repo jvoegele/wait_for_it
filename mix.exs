@@ -5,12 +5,14 @@ defmodule WaitForIt.Mixfile do
     [
       app: :wait_for_it,
       version: "1.4.3",
-      description: "Elixir library for waiting for things to happen",
+      elixir: "~> 1.15",
+      name: "WaitForIt",
+      description: "Elixir library providing various ways of waiting for things to happen",
       source_url: "https://github.com/jvoegele/wait_for_it",
-      elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
+      deps: deps(),
       package: package(),
-      deps: deps()
+      docs: docs()
     ]
   end
 
@@ -39,6 +41,17 @@ defmodule WaitForIt.Mixfile do
       maintainers: ["Jason Voegele"],
       licenses: ["Apache 2.0"],
       links: %{"GitHub" => "https://github.com/jvoegele/wait_for_it"}
+    ]
+  end
+
+  @doc_modules [WaitForIt, WaitForIt.TimeoutError, WaitForIt.V1]
+
+  defp docs do
+    [
+      main: "WaitForIt",
+      filter_modules: fn module, _meta ->
+        module in @doc_modules
+      end
     ]
   end
 end
