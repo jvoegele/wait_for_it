@@ -19,6 +19,8 @@ defmodule WaitForIt.Waitable.CondWait do
   defimpl WaitForIt.Waitable do
     alias WaitForIt.Waitable.CondWait
 
+    def wait_type(%CondWait{}), do: :cond_wait
+
     def evaluate(%CondWait{cond_clauses: cond_clauses}, _env) do
       try do
         result = WaitForIt.EvalHelpers.eval_cond_expression(cond_clauses)

@@ -20,6 +20,8 @@ defmodule WaitForIt.Waitable.CaseWait do
   defimpl WaitForIt.Waitable do
     alias WaitForIt.Waitable.CaseWait
 
+    def wait_type(%CaseWait{}), do: :case_wait
+
     def evaluate(%CaseWait{expression: expression, case_clauses: case_clauses}, _env) do
       value = WaitForIt.EvalHelpers.eval_expression(expression)
 

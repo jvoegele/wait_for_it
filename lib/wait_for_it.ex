@@ -1,5 +1,5 @@
 defmodule WaitForIt do
-  @moduledoc ~S"""
+  @moduledoc """
   `WaitForIt` provides macros for various ways of waiting for things to happen.
 
   Since most Elixir systems are highly concurrent there must be a way to coordinate and synchronize
@@ -125,20 +125,8 @@ defmodule WaitForIt do
     end
   end
 
-  @doc ~S"""
-  Wait until the given `expression` evaluates to a truthy value.
-
-  Returns the truthy value that ended the wait,  or raises a `WaitForIt.TimeoutError` if a timeout
-  occurs.
-
-  ## Options
-
-  See the WaitForIt module documentation for further discussion of these options.
-
-    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
-    * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
-    * `:signal` - disable polling and use a signal of the given name instead
-    * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
+  @doc """
+  The same as `wait/2` but raises a `WaitForIt.TimeoutError` exception if it fails.
   """
   defmacro wait!(expression, opts \\ []) do
     quote do
@@ -235,6 +223,27 @@ defmodule WaitForIt do
     end
   end
 
+  @doc """
+  Same as `case_wait/3` but raises a `WaitForIt.TimeoutError` if it fails.
+  """
+  defmacro case_wait!(expression, opts \\ [], blocks) do
+    case_clauses = Keyword.get(blocks, :do)
+    else_block = Keyword.get(blocks, :else)
+
+    quote do
+      require WaitForIt.Waitable.CaseWait
+
+      waitable =
+        WaitForIt.Waitable.CaseWait.create(
+          unquote(expression),
+          unquote(case_clauses),
+          unquote(else_block)
+        )
+
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+    end
+  end
+
   @doc ~S"""
   Wait until one of the expressions in the given block evaluates to a truthy value.
 
@@ -295,6 +304,35 @@ defmodule WaitForIt do
     end
   end
 
+  @doc """
+  Same as `cond_wait/2` but raises a `WaitForIt.TimeoutError` if it fails.
+  """
+  defmacro cond_wait!(opts \\ [], blocks) do
+    cond_clauses = Keyword.get(blocks, :do)
+    else_block = Keyword.get(blocks, :else)
+
+    quote do
+      require WaitForIt.Waitable.CondWait
+
+      waitable =
+        WaitForIt.Waitable.CondWait.create(
+          unquote(cond_clauses),
+          unquote(else_block)
+        )
+
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+    end
+  end
+
+  # defmacro match_wait(pattern, expression, opts \\ []) do
+  #   quote do
+  #     require WaitForIt.Waitable.MatchWait
+  #
+  #     waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
+  #     WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+  #   end
+  # end
+
   # defmacro with_wait(with_clauses, blocks) do
   #   # TODO:
   #   # Implement this macro.
@@ -312,7 +350,7 @@ defmodule WaitForIt do
   #   # of the clauses serially, applying waiting semantics whenever applicable.
   # end
 
-  @doc ~S"""
+  @doc """
   Send a signal to indicate that any processes waiting on the signal should re-evaluate their
   wait conditions.
   """

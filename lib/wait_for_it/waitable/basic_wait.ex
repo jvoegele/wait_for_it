@@ -18,6 +18,8 @@ defmodule WaitForIt.Waitable.BasicWait do
   defimpl WaitForIt.Waitable do
     alias WaitForIt.Waitable.BasicWait
 
+    def wait_type(%BasicWait{}), do: :wait
+
     def evaluate(%BasicWait{expression: expression}, _env) do
       value = WaitForIt.EvalHelpers.eval_expression(expression)
 

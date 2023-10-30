@@ -64,7 +64,7 @@ defmodule WaitForIt.Waiting do
 
           {:timeout, timeout} ->
             if wait_opts[:on_timeout] == :raise do
-              raise WaitForIt.TimeoutError, timeout: timeout, wait_type: :wait!, last_value: value
+              Waitable.Raise.raise_timeout_error(waitable, value, timeout, env)
             else
               Waitable.handle_timeout(waitable, value, env)
             end
