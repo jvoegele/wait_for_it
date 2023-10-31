@@ -1,17 +1,24 @@
 defmodule WaitForIt.Mixfile do
   use Mix.Project
 
+  @version "2.0.0"
+  @source_url "https://github.com/jvoegele/wait_for_it"
+
   def project do
     [
       app: :wait_for_it,
-      version: "1.4.3",
+      version: @version,
       elixir: "~> 1.15",
-      name: "WaitForIt",
-      description: "Elixir library providing various ways of waiting for things to happen",
-      source_url: "https://github.com/jvoegele/wait_for_it",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+
+      # Hex
       package: package(),
+      description: "Elixir library providing various ways of waiting for things to happen",
+
+      # Docs
+      name: "WaitForIt",
+      source_url: @source_url,
       docs: docs()
     ]
   end
@@ -39,8 +46,8 @@ defmodule WaitForIt.Mixfile do
       name: :wait_for_it,
       files: ["lib", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md"],
       maintainers: ["Jason Voegele"],
-      licenses: ["Apache 2.0"],
-      links: %{"GitHub" => "https://github.com/jvoegele/wait_for_it"}
+      licenses: ["Apache-2.0"],
+      links: %{"GitHub" => @source_url}
     ]
   end
 
@@ -49,6 +56,10 @@ defmodule WaitForIt.Mixfile do
   defp docs do
     [
       main: "WaitForIt",
+      extras: [
+        "CHANGELOG.md": [title: "Changelog"],
+        LICENSE: [title: "License"]
+      ],
       filter_modules: fn module, _meta ->
         module in @doc_modules
       end
