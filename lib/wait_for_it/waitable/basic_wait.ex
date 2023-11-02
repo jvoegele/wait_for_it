@@ -7,10 +7,10 @@ defmodule WaitForIt.Waitable.BasicWait do
 
   defmacro create(quoted_expression) do
     quote do
-      require WaitForIt.EvalHelpers
+      require WaitForIt.Evaluation
 
       %WaitForIt.Waitable.BasicWait{
-        expression: WaitForIt.EvalHelpers.wrap_expression(unquote(quoted_expression))
+        expression: WaitForIt.Evaluation.capture_expression(unquote(quoted_expression))
       }
     end
   end
@@ -21,7 +21,7 @@ defmodule WaitForIt.Waitable.BasicWait do
     def wait_type(%BasicWait{}), do: :wait
 
     def evaluate(%BasicWait{expression: expression}, _env) do
-      value = WaitForIt.EvalHelpers.eval_expression(expression)
+      value = WaitForIt.Evaluation.eval_expression(expression)
 
       if value do
         {:halt, value}

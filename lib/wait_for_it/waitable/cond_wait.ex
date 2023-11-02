@@ -7,11 +7,11 @@ defmodule WaitForIt.Waitable.CondWait do
 
   defmacro create(cond_clauses, else_block \\ nil) do
     quote do
-      require WaitForIt.EvalHelpers
+      require WaitForIt.Evaluation
 
       %WaitForIt.Waitable.CondWait{
-        cond_clauses: WaitForIt.EvalHelpers.wrap_cond_clauses(unquote(cond_clauses)),
-        else_block: WaitForIt.EvalHelpers.wrap_else_block(unquote(else_block))
+        cond_clauses: WaitForIt.Evaluation.capture_cond_clauses(unquote(cond_clauses)),
+        else_block: WaitForIt.Evaluation.capture_else_block(unquote(else_block))
       }
     end
   end
@@ -23,7 +23,7 @@ defmodule WaitForIt.Waitable.CondWait do
 
     def evaluate(%CondWait{cond_clauses: cond_clauses}, _env) do
       try do
-        result = WaitForIt.EvalHelpers.eval_cond_expression(cond_clauses)
+        result = WaitForIt.Evaluation.eval_cond_expression(cond_clauses)
         {:halt, result}
       rescue
         CondClauseError -> {:cont, nil}
@@ -31,7 +31,7 @@ defmodule WaitForIt.Waitable.CondWait do
     end
 
     def handle_timeout(%CondWait{else_block: else_block}, last_value, _env) do
-      WaitForIt.EvalHelpers.eval_else_block(last_value, else_block)
+      WaitForIt.Evaluation.eval_else_block(last_value, else_block)
     end
   end
 end
