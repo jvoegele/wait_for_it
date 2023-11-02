@@ -51,7 +51,7 @@ defmodule WaitForIt.Mixfile do
     ]
   end
 
-  @doc_modules [WaitForIt, WaitForIt.TimeoutError, WaitForIt.V1]
+  @doc_modules [WaitForIt, WaitForIt.Waitable, WaitForIt.TimeoutError, WaitForIt.V1]
 
   defp docs do
     [

@@ -1,4 +1,6 @@
 defmodule WaitForIt.V1.ConditionVariable do
+  @moduledoc false
+
   use GenServer,
     restart: :temporary
 

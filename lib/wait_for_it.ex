@@ -9,26 +9,68 @@ defmodule WaitForIt do
 
   WaitForIt provides various ways of waiting for such changes to happen.
 
-  While Elixir provides features such as `Process.sleep/1` and `receive/1`/`after`
-  that can be used to implement waiting, they are inconvenient to use for this purpose. WaitForIt
-  builds on top of these language features to provide convenient and easy-to-use facilities for
-  waiting on specific conditions. While this is likely most useful for test code in which tests
-  must wait for concurrent or asynchronous activities to complete, it is also useful in any
-  scenario where concurrent processes must coordinate their activity. Examples include
-  asynchronous event handling, producer-consumer processes, and time-based activity.
+  While Elixir provides built-in features such as `Process.sleep/1`, `receive/1`/`after`, and
+  `Task.async/1`/`Task.await/2` that can be used to implement waiting, they are inconvenient to
+  use for this purpose. WaitForIt builds on top of these language features to provide convenient
+  and easy-to-use facilities for waiting on specific conditions. While this is likely most useful
+  for test code in which tests must wait for concurrent or asynchronous activities to complete,
+  it is also useful in any scenario where concurrent processes must coordinate their activity.
+  Examples include asynchronous event handling, producer-consumer processes, and time-based
+  activity.
 
   ## Quick start
+
+  To use WaitForIt, you must first `require` or `import` the WaitForIt module.
 
   There are three distinct forms of waiting provided. Jump to the docs for each for more
   information.
 
-  1. The `wait/2` macro waits until a given expression evaluates to a truthy value.
-  2. The `case_wait/3` macro waits until a given expression evaluates to a value that
-     matches any one of the given case clauses (looks like an Elixir `case/2` expression).
-  3. The `cond_wait/2` macro waits until any one of the given expressions evaluates to a truthy
-     value (looks like an Elixir `cond/1` expression).
+  #### wait
 
-  All three forms accept the same set of options to control their behavior:
+  The `wait/2` macro waits until a given expression evaluates to a truthy value.
+
+      # Wait up to one minute for a file to exist, and then print its contents
+      if WaitForIt.wait(File.exists?("data.csv"), timeout: :timer.minutes(1)) do
+        IO.puts(File.read!("data.csv"))
+      else
+        IO.warn("Stopped waiting for the file to exist")
+      end
+
+  #### case_wait
+
+  The `case_wait/3` macro waits until a given expression evaluates to a value that matches any one
+  of the given case clauses (looks like an Elixir `case/2` expression).
+
+      # Wait for 30 seconds for a directory to exist, and then write a file in it
+      WaitForIt.case_wait File.stat("data"), timeout: :timer.seconds(30) do
+        {:ok, %File.Stat{type: :directory}} ->
+          File.write!("data/greeting.txt", "Hello, world!")
+      else
+        {:ok, %File.Stat{type: type}} ->
+          IO.warn("Expected 'data' to be a directory but its type is #{inspect(type)}")
+
+        {:error, reason} ->
+          IO.warn("Could not stat 'data': #{inspect(reason)}")
+      end
+
+  #### cond_wait
+
+  The `cond_wait/2` macro waits until any one of the given expressions evaluates to a truthy value
+  (looks like an Elixir `cond/1` expression).
+
+      # Wait for up to one minute for either a specific file to exist OR for the top of the minute
+      # to be reached.
+      WaitForIt.cond_wait(timeout: :timer.seconds(10), frequency: 500) do
+        File.exists?("data/process.json") ->
+          IO.puts("Processing...")
+
+        NaiveDateTime.utc_now().second == 0 ->
+          IO.puts("Processing...")
+      end
+
+  ### Options
+
+  All three forms of waiting accept the same set of options to control their behavior:
 
   * `:timeout` - the amount of time to wait (in milliseconds) before giving up
   * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
@@ -499,12 +541,17 @@ defmodule WaitForIt do
   #   end
   # end
 
+  # defmacro pattern <- expression do
+  #   quote do
+  #   end
+  # end
+
   # defmacro with_wait(with_clauses, blocks) do
   #   # TODO:
   #   # Implement this macro.
   #   #
   #   # Consider using `<~` for waiting version of the `<-` operator.
-  #   # Figure out how to pass waiting options (e.g. timeout & frequency) to the individual 
+  #   # Figure out how to pass waiting options (e.g. timeout & frequency) to the individual
   #   # expressions in the with_clauses. Should the RHS be a 2-tuple of the form
   #   # `{expression, wait_opts}`? Or should there be another named macro that builds such a tuple?
   #   #
@@ -514,6 +561,24 @@ defmodule WaitForIt do
   #   # Non-waiting clauses are perhaps evaluated immediatelY? But what if there are dependencies
   #   # between clauses? Can we figure that out? Or perhaps we don't need to if we still evaluate all
   #   # of the clauses serially, applying waiting semantics whenever applicable.
+  #   do_block = Keyword.get(blocks, :do)
+  #   else_block = Keyword.get(blocks, :else)
+  #   IO.inspect(Macro.to_string(with_clauses))
+  #   IO.inspect(Macro.to_string(do_block))
+  #
+  #   quote do
+  #     require WaitForIt.Waitable.WithWait
+  #
+  #     # waitable =
+  #     #   WaitForIt.Waitable.WithWait.create(
+  #     #     unquote(with_clauses),
+  #     #     unquote(do_block),
+  #     #     unquote(else_block)
+  #     #   )
+  #     #
+  #     # IO.inspect(waitable)
+  #     # WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+  #   end
   # end
 
   @doc """
