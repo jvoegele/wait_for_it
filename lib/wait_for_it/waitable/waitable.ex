@@ -1,8 +1,7 @@
 defprotocol WaitForIt.Waitable do
-  # TODO: reword this protocol description
   @moduledoc """
-  Protocol used for evaluating waitable expressions to determine if waiting should continue and to
-  determine the final value of the wait.
+  Protocol used for evaluating waitable expressions against waiting conditions to determine if
+  waiting should continue or halt with a final value.
   """
 
   @type wait_type :: atom()

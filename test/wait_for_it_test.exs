@@ -282,24 +282,6 @@ defmodule WaitForItTest do
     end
   end
 
-  describe "with_wait" do
-    # test "this probably won't even be a thing in the end" do
-    #   with_wait {:ok, "bar"} <~ {Map.fetch(%{}, :foo), timeout: 10},
-    #             true <~ {Process.alive?(self()), frequency: 20} do
-    #     {:ok, "Yippee!"}
-    #   else
-    #     :error -> {:error, "whatevs"}
-    #   end
-    #
-    #   with_wait {:ok, value} <- wait(Map.fetch(%{}, :foo), timeout: 10),
-    #             :error <- wait(Map.fetch(%{}, :bar), frequency: 8) do
-    #     {:ok, "Yippee!"}
-    #   else
-    #     :error -> {:error, "whatevs"}
-    #   end
-    # end
-  end
-
   describe "multiple waiters using :signal option" do
     property "all wait until they receive the signal" do
       check all(

@@ -532,55 +532,6 @@ defmodule WaitForIt do
     end
   end
 
-  # defmacro match_wait(pattern, expression, opts \\ []) do
-  #   quote do
-  #     require WaitForIt.Waitable.MatchWait
-  #
-  #     waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
-  #     WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
-  #   end
-  # end
-
-  # defmacro pattern <- expression do
-  #   quote do
-  #   end
-  # end
-
-  # defmacro with_wait(with_clauses, blocks) do
-  #   # TODO:
-  #   # Implement this macro.
-  #   #
-  #   # Consider using `<~` for waiting version of the `<-` operator.
-  #   # Figure out how to pass waiting options (e.g. timeout & frequency) to the individual
-  #   # expressions in the with_clauses. Should the RHS be a 2-tuple of the form
-  #   # `{expression, wait_opts}`? Or should there be another named macro that builds such a tuple?
-  #   #
-  #   # Implementation ideas:
-  #   # Collect all of the with_clauses and group by `<~` (waiting) and `<-` non-waiting clauses.
-  #   # Waiting clauses use the same waiting semantics as the other wait forms in this module.
-  #   # Non-waiting clauses are perhaps evaluated immediatelY? But what if there are dependencies
-  #   # between clauses? Can we figure that out? Or perhaps we don't need to if we still evaluate all
-  #   # of the clauses serially, applying waiting semantics whenever applicable.
-  #   do_block = Keyword.get(blocks, :do)
-  #   else_block = Keyword.get(blocks, :else)
-  #   IO.inspect(Macro.to_string(with_clauses))
-  #   IO.inspect(Macro.to_string(do_block))
-  #
-  #   quote do
-  #     require WaitForIt.Waitable.WithWait
-  #
-  #     # waitable =
-  #     #   WaitForIt.Waitable.WithWait.create(
-  #     #     unquote(with_clauses),
-  #     #     unquote(do_block),
-  #     #     unquote(else_block)
-  #     #   )
-  #     #
-  #     # IO.inspect(waitable)
-  #     # WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
-  #   end
-  # end
-
   @doc """
   Send a signal to indicate that any processes waiting on the signal should re-evaluate their
   waiting conditions.
