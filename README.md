@@ -1,16 +1,9 @@
 # WaitForIt
 
-Various ways to wait for things to happen.
+Various ways of waiting for things to happen.
 
-Since most Elixir systems are highly concurrent, there must be a way to coordinate and synchronize
-the processes in the system. While the language provides features (such as
-`Process.sleep/1` and `receive`/`after`) that can be used to implement such synchronization, they are
-inconvenient to use for this purpose. `WaitForIt` builds on top of these language features to
-provide convenient and easy-to-use facilities for synchronizing concurrent activities. While
-this is likely most useful for test code in which tests must wait for concurrent or asynchronous
-activities to complete, it is also useful in any scenario where concurrent processes must
-coordinate their activity. Examples include asynchronous event handling, producer-consumer
-processes, and time-based activity.
+This library allows you to wait on the results of asynchronous or remote operations using
+intuitive and familiar syntax based on built-in Elixir language constructs.
 
 There are three distinct forms of waiting provided:
 
@@ -24,13 +17,12 @@ See the [API reference](https://hexdocs.pm/wait_for_it/WaitForIt.html) for full 
 
 ## Installation
 
-`wait_for_it` can be installed from Hex by adding `wait_for_it` to your list
-of dependencies in `mix.exs`:
+`wait_for_it` can be installed by adding it to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:wait_for_it, "~> 1.1"}
+    {:wait_for_it, "~> 2.0"}
   ]
 end
 ```
@@ -38,5 +30,3 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/wait_for_it](https://hexdocs.pm/wait_for_it).
-
-Sponsored by Ropig http://ropig.com

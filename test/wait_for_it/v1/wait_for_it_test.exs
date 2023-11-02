@@ -1,10 +1,10 @@
-defmodule WaitForItTest do
+defmodule WaitForIt.V1.WaitForItTest do
   use ExUnit.Case
   use ExUnitProperties
 
-  import WaitForIt
+  import WaitForIt.V1
 
-  doctest WaitForIt
+  @moduletag :legacy
 
   defp increment_counter do
     counter = (Process.get(:counter) || 0) + 1
@@ -31,12 +31,12 @@ defmodule WaitForItTest do
   defp increment_task(counter_pid, opts) do
     sleep_time = Keyword.get(opts, :sleep_time, 0)
     max = Keyword.get(opts, :max, 1_000_000)
-    signal = Keyword.get(opts, :signal)
+    condition_var = Keyword.get(opts, :signal)
 
     Task.start_link(fn ->
       for _ <- 1..max do
         increment_counter(counter_pid)
-        if signal, do: WaitForIt.signal(signal)
+        if condition_var, do: signal(condition_var)
         Process.sleep(sleep_time)
       end
     end)
@@ -44,31 +44,31 @@ defmodule WaitForItTest do
 
   describe "wait/2" do
     test "waits for expression to be truthy" do
-      assert wait(increment_counter() > 2) == true
+      {:ok, true} = wait(increment_counter() > 2)
       assert 3 == Process.get(:counter)
     end
 
     test "accepts a :frequency option" do
-      assert wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
+      wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
       assert 5 == Process.get(:counter)
     end
 
     test "accepts a :timeout option" do
       timeout = 10
-      refute wait(increment_counter() > timeout, timeout: timeout, frequency: 1)
+      {:timeout, ^timeout} = wait(increment_counter() > timeout, timeout: timeout, frequency: 1)
       assert Process.get(:counter) < timeout
     end
 
     test "accepts a :signal option" do
       {:ok, counter} = init_counter(0)
       _task = increment_task(counter, max: 1000, signal: :counter_wait)
-      assert wait(get_counter(counter) > 99, signal: :counter_wait) == true
+      assert {:ok, true} == wait(get_counter(counter) > 99, signal: :counter_wait)
       assert get_counter(counter) > 99
     end
 
     test "times out if signal not received" do
       {:ok, counter} = init_counter(0)
-      refute wait(get_counter(counter) > 99, signal: :wait_in_vain, timeout: 10)
+      assert {:timeout, 10} == wait(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
     end
   end
 
@@ -105,7 +105,7 @@ defmodule WaitForItTest do
 
       %WaitForIt.TimeoutError{timeout: timeout, last_value: last_value} =
         assert_raise WaitForIt.TimeoutError, fn ->
-          wait!(get_counter(counter) > 99, signal: :wait_in_vain, timeout: 10)
+          wait!(get_counter(counter) > 99, signal: :counter_wait, timeout: 10)
         end
 
       assert timeout == 10
@@ -137,13 +137,12 @@ defmodule WaitForItTest do
     test "accepts a :timeout option" do
       timeout = 10
 
-      last_value =
+      {:timeout, ^timeout} =
         case_wait increment_counter(), timeout: timeout, frequency: 1 do
           11 -> 11
         end
 
-      assert is_integer(last_value) and last_value < timeout
-      assert Process.get(:counter) == last_value
+      assert Process.get(:counter) < timeout
     end
 
     test "accepts a :signal option" do
@@ -164,12 +163,11 @@ defmodule WaitForItTest do
         {:ok, counter} = init_counter(0)
 
         result =
-          case_wait get_counter(counter), signal: :wait_in_vain, timeout: timeout do
+          case_wait get_counter(counter), signal: :counter_wait, timeout: timeout do
             100 -> 100
           end
 
-        assert is_integer(result)
-        assert result < timeout
+        assert result == {:timeout, timeout}
       end
     end
 
@@ -177,7 +175,7 @@ defmodule WaitForItTest do
       {:ok, counter} = init_counter(0)
 
       result =
-        case_wait get_counter(counter), signal: :wait_in_vain, timeout: 10 do
+        case_wait get_counter(counter), signal: :counter_wait, timeout: 10 do
           100 -> 100
         else
           {:timeout, :else_clause}
@@ -235,12 +233,11 @@ defmodule WaitForItTest do
     test "accepts a :timeout option" do
       timeout = 10
 
-      value =
+      {:timeout, ^timeout} =
         cond_wait timeout: timeout, frequency: 1 do
           11 == increment_counter() -> :ok
         end
 
-      assert is_nil(value)
       assert Process.get(:counter) < timeout
     end
 
@@ -259,20 +256,21 @@ defmodule WaitForItTest do
 
     test "times out if signal not received" do
       {:ok, counter} = init_counter(0)
+      timeout = 10
 
       result =
         cond_wait signal: :counter_wait, timeout: 10 do
           get_counter(counter) > 99 -> :will_never_get_here
         end
 
-      assert is_nil(result)
+      assert result == {:timeout, timeout}
     end
 
     test "accepts an else block" do
       {:ok, _counter} = init_counter(0)
 
       result =
-        cond_wait signal: :wait_in_vain, timeout: 10 do
+        cond_wait signal: :counter_wait, timeout: 10 do
           :answer == 42 -> true
         else
           {:timeout, :else_clause}

@@ -1,9 +1,9 @@
-defmodule WaitForIt.ConditionVariable.Supervisor do
+defmodule WaitForIt.V1.ConditionVariable.Supervisor do
   @moduledoc false
 
   use DynamicSupervisor
 
-  alias WaitForIt.ConditionVariable
+  alias WaitForIt.V1.ConditionVariable
 
   def start_link(arg) do
     DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)

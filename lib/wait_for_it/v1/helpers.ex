@@ -1,7 +1,7 @@
-defmodule WaitForIt.Helpers do
+defmodule WaitForIt.V1.Helpers do
   @moduledoc false
 
-  alias WaitForIt.ConditionVariable
+  alias WaitForIt.V1.ConditionVariable
 
   defmacro localized_name(name) do
     if name do
