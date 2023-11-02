@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2.0.0 - 2023-11-02
+### Changed
+- Much improved documentation
+- Breaking change to return value of `WaitForIt.wait/2`, `WaitForIt.case_wait/3`, and `WaitForIt.cond_wait/2`
+- Rewrite of WaitForIt internals
+- Moved legacy code to `WaitForIt.V1`
+
 ## 1.4.0 - 2023-10-24
 ### Added
 - Add WaitForIt.wait! macro.
