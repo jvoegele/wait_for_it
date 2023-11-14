@@ -22,7 +22,7 @@ See the [API reference](https://hexdocs.pm/wait_for_it/WaitForIt.html) for full 
 ```elixir
 def deps do
   [
-    {:wait_for_it, "~> 2.0"}
+    {:wait_for_it, "~> 2.1"}
   ]
 end
 ```
