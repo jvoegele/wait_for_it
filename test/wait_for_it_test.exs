@@ -137,9 +137,11 @@ defmodule WaitForItTest do
     test "accepts a :timeout option" do
       timeout = 10
 
-      last_value =
-        case_wait increment_counter(), timeout: timeout, frequency: 1 do
-          11 -> 11
+      %CaseClauseError{term: last_value} =
+        assert_raise CaseClauseError, fn ->
+          case_wait increment_counter(), timeout: timeout, frequency: 1 do
+            11 -> 11
+          end
         end
 
       assert is_integer(last_value) and last_value < timeout
@@ -159,18 +161,18 @@ defmodule WaitForItTest do
       assert get_counter(counter) >= count
     end
 
-    property "times out if signal not received" do
-      check all(timeout <- integer(5..50)) do
-        {:ok, counter} = init_counter(0)
+    test "times out if signal not received" do
+      {:ok, counter} = init_counter(0)
 
-        result =
-          case_wait get_counter(counter), signal: :wait_in_vain, timeout: timeout do
+      %CaseClauseError{term: result} =
+        assert_raise CaseClauseError, fn ->
+          case_wait get_counter(counter), signal: :wait_in_vain, timeout: 10 do
             100 -> 100
           end
+        end
 
-        assert is_integer(result)
-        assert result < timeout
-      end
+      assert is_integer(result)
+      assert result < 10
     end
 
     test "accepts an else block" do
@@ -235,12 +237,12 @@ defmodule WaitForItTest do
     test "accepts a :timeout option" do
       timeout = 10
 
-      value =
+      assert_raise CondClauseError, fn ->
         cond_wait timeout: timeout, frequency: 1 do
           11 == increment_counter() -> :ok
         end
+      end
 
-      assert is_nil(value)
       assert Process.get(:counter) < timeout
     end
 
@@ -260,12 +262,11 @@ defmodule WaitForItTest do
     test "times out if signal not received" do
       {:ok, counter} = init_counter(0)
 
-      result =
+      assert_raise CondClauseError, fn ->
         cond_wait signal: :counter_wait, timeout: 10 do
           get_counter(counter) > 99 -> :will_never_get_here
         end
-
-      assert is_nil(result)
+      end
     end
 
     test "accepts an else block" do

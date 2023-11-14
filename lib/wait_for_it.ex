@@ -20,7 +20,7 @@ defmodule WaitForIt do
 
   ## Quick start
 
-  To use WaitForIt, you must first `require` or `import` the `WaitForIt` module.
+  To use WaitForIt, you must first `require WaitForIt` or `import WaitForIt`.
 
   There are three distinct forms of waiting provided. Jump to the docs for each for more
   information.
@@ -39,10 +39,11 @@ defmodule WaitForIt do
   #### case_wait
 
   The `case_wait/3` macro waits until a given expression evaluates to a value that matches any one
-  of the given case clauses (looks like an Elixir `case/2` expression).
+  of the given case clauses. It looks and acts like an Elixir `case/2` expression except that it
+  can take an optional `else` clause.
 
       # Wait for 30 seconds for a directory to exist, and then write a file in it
-      WaitForIt.case_wait File.stat("data"), timeout: :timer.seconds(30) do
+      WaitForIt.case_wait(File.stat("data"), timeout: :timer.seconds(30)) do
         {:ok, %File.Stat{type: :directory}} ->
           File.write!("data/greeting.txt", "Hello, world!")
       else
@@ -55,8 +56,9 @@ defmodule WaitForIt do
 
   #### cond_wait
 
-  The `cond_wait/2` macro waits until any one of the given expressions evaluates to a truthy value
-  (looks like an Elixir `cond/1` expression).
+  The `cond_wait/2` macro waits until any one of the given expressions evaluates to a truthy value.
+  It looks and acts like an Elixir `cond/1` expression except that it can take an optional `else`
+  clause.
 
       # Wait for up to one minute for either a specific file to exist OR for the top of the minute
       # to be reached.
@@ -66,6 +68,8 @@ defmodule WaitForIt do
 
         NaiveDateTime.utc_now().second == 0 ->
           IO.puts("Processing...")
+      else
+        IO.warn("Stopped waiting since neither condition ever became truthy")
       end
 
   ### Options
@@ -93,7 +97,7 @@ defmodule WaitForIt do
 
   In the case of `wait/2`, there is a single waitable expression, which is passed as the first
   argument of the macro, and an implicit waiting condition, which is based on the truthiness
-  of waitable expression. For example:
+  of the associated waitable expression. For example:
 
       WaitForIt.wait(2 + 2 == 5, timeout: 200)
 
@@ -246,6 +250,24 @@ defmodule WaitForIt do
         [] -> flunk("expected one or two things, got no things")
         [_ | _] = things -> flunk("expected one or two things, got #{length(things)} things")
       end
+
+  ## A note on "catch-all" clauses
+
+  It is common to include "catch-all" clauses in normal Elixir `case/2` and `cond/1` expressions.
+  Often, a `case/2` expression will include a final catch-all clause (like `_`) which will always
+  match, Similarly, a `cond/1` expression will typically include a final always-truthy condition
+  (like `true`) which will always match.
+
+  When using the waiting variants of these constructs, `case_wait/3` and `cond_wait/2`, it is
+  *not* recommended to use such catch-all clauses. The reason for this is that, since catch-all
+  clauses by definition always match, including one as a waiting condition would not allow for
+  re-evaluating any other waiting conditions and would terminate the wait immediately after the
+  first evaluation.
+
+  Instead of using a catch-all clause that always matches, an `else` clause can be used instead.
+  Both `case_wait/3` and `cond_wait/2` support `else` clauses, and these clauses are evaluated
+  whenever a waiting operation results in a timeout, which allows for customizing the behavior
+  and return value of the expression in the event of a timeout.
   """
 
   @typedoc """
@@ -355,12 +377,22 @@ defmodule WaitForIt do
   An optional `else` clause may also be used to provide the value in case of a timeout. If an
   `else` clause is provided and a timeout occurs, then the `else` clause will be evaluated and
   the resulting value of the `else` clause becomes the value of the `case_wait/3` expression. If no
-  `else` clause is provided and a timeout occurs, then the value of the `case_wait/3` expression is
-  the last evaluated value of the expression.
+  `else` clause is provided and a timeout occurs, then a `CaseClauseError` is raised, exactly as
+  if a normal Elixir `case/2` expression were being used.
 
-  The optional `else` clause may also take the form of match clauses, such as those in a case
-  expression. In this form, the `else` clause can match on the final value of the expression that
-  was evaluated before the timeout occurred. See the examples below for an example of this.
+  The optional `else` clause may also take the form of match clauses, such as those in the `else`
+  clause of a `with/1` expression. In this form, the `else` clause can match on the final value
+  of the expression that was evaluated before the timeout occurred. See the examples below for an
+  example of this.
+
+  > #### Beware "catch-all" clauses {: .warning}
+  >
+  > `case_wait/3` expressions should *not* include a final "catch-all" clause, such as `_`, which
+  > would always match. Instead, an `else` clause can be used to customize the behavior and
+  > return value in the event of a waiting timeout.
+  >
+  > See [A note on "catch-all" clauses](#module-a-note-on-catch-all-clauses) in the module docs
+  > for further information.
 
   ## Options
 
@@ -466,8 +498,17 @@ defmodule WaitForIt do
   An optional `else` clause may also be used to provide the value in case of a timeout. If an
   `else` clause is provided and a timeout occurs, then the `else` clause will be evaluated and
   the resulting value of the `else` clause becomes the value of the `cond_wait/2` expression. If no
-  `else` clause is provided and a timeout occurs, then the value of the `cond_wait/2` expression is
-  `nil`.
+  `else` clause is provided and a timeout occurs, then a `CondClauseError` is raised, exactly as
+  if a normal Elixir `cond/1` expression were being used.
+
+  > #### Beware "catch-all" clauses {: .warning}
+  >
+  > `cond_wait/2` expressions should *not* include a final "catch-all" clause, such as `true`,
+  > which would always match. Instead, an `else` clause can be used to customize the behavior and
+  > return value in the event of a waiting timeout.
+  >
+  > See [A note on "catch-all" clauses](#module-a-note-on-catch-all-clauses) in the module docs
+  > for further information.
 
   ## Options
 

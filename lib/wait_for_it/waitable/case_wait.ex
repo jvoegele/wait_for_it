@@ -33,6 +33,10 @@ defmodule WaitForIt.Waitable.CaseWait do
       end
     end
 
+    def handle_timeout(%CaseWait{else_block: nil}, last_value, env) do
+      reraise CaseClauseError, [term: last_value], Macro.Env.stacktrace(env)
+    end
+
     def handle_timeout(%CaseWait{else_block: else_block}, last_value, _env) do
       WaitForIt.Evaluation.eval_else_block(last_value, else_block)
     end
