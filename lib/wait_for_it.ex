@@ -426,22 +426,28 @@ defmodule WaitForIt do
         thermostat(desired_temperature)
       end
 
-  Ring the church bells every 15 minutes:
+  Wait until the process mailbox is small enough before flooding it with more messages:
 
-      def church_bell_chimes do
-        count =
-          WaitForIt.case_wait Time.utc_now.minute, frequency: 60_000, timeout: 60_000 * 60 do
-            15 -> 1
-            30 -> 2
-            45 -> 3
-            0 -> 4
-          end
-
-        IO.puts(String.duplicate(" ding ding ding dong ", count))
-
-        # Recursively call to wait for the next time to ring the bells...
-        church_bell_chimes()
+      WaitForIt.case_wait Process.info(stream_pid, :message_queue_len),
+        frequency: 10,
+        timeout: 60_000 do
+        {:message_queue_len, len} when len < 500 ->
+          send_chunk(conn, chunk)
+      else
+        len ->
+          raise "Timeout while sending stream response. [message_queue_len: #{len}]"
       end
+
+  > #### Production-ready {: .info}
+  >
+  > The above example is a real-world use of WaitForIt that was used to solve an issue with chunked
+  > HTTP responses using [plug_cowboy](https://github.com/elixir-plug/plug_cowboy)! The underlying
+  > issue has since been fixed but this example is a good illustration of using WaitForIt to
+  > solve a production problem.
+  >
+  > See https://github.com/elixir-plug/plug_cowboy/issues/10 for background and further details,
+  > if interested.
+
   """
   defmacro case_wait(expression, opts \\ [], blocks) do
     case_clauses = Keyword.get(blocks, :do)
