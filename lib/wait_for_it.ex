@@ -441,7 +441,7 @@ defmodule WaitForIt do
   > #### Production-ready {: .info}
   >
   > The above example is a real-world use of WaitForIt that was used to solve an issue with chunked
-  > HTTP responses using [plug_cowboy](https://github.com/elixir-plug/plug_cowboy)! The underlying
+  > HTTP responses using [plug_cowboy](https://github.com/elixir-plug/plug_cowboy). The underlying
   > issue has since been fixed but this example is a good illustration of using WaitForIt to
   > solve a production problem.
   >
