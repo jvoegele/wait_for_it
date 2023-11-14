@@ -9,18 +9,18 @@ defmodule WaitForIt do
 
   WaitForIt provides various ways of waiting for such changes to happen.
 
-  While Elixir provides built-in features such as `Process.sleep/1`, `receive/1`/`after`, and
-  `Task.async/1`/`Task.await/2` that can be used to implement waiting, they are inconvenient to
-  use for this purpose. WaitForIt builds on top of these language features to provide convenient
-  and easy-to-use facilities for waiting on specific conditions. While this is likely most useful
-  for test code in which tests must wait for concurrent or asynchronous activities to complete,
-  it is also useful in any scenario where concurrent processes must coordinate their activity.
-  Examples include asynchronous event handling, producer-consumer processes, and time-based
-  activity.
+  While Elixir provides several language and standard library features (such as
+  `Process.sleep/1`, `receive/1`/`after`, and `Task.async/1`/`Task.await/2`) that can be used to
+  implement waiting, they are inconvenient to use for this purpose. WaitForIt builds on top of
+  these language features to provide convenient and easy-to-use facilities for waiting on specific
+  conditions. While this is likely most useful for test code in which tests must wait for
+  concurrent or asynchronous activities to complete, it is also useful in any scenario where
+  concurrent processes must coordinate their activity. Examples include asynchronous event
+  handling, producer-consumer processes, and time-based activity.
 
   ## Quick start
 
-  To use WaitForIt, you must first `require` or `import` the WaitForIt module.
+  To use WaitForIt, you must first `require` or `import` the `WaitForIt` module.
 
   There are three distinct forms of waiting provided. Jump to the docs for each for more
   information.
