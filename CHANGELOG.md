@@ -4,12 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 2.1.0 - 2023--11-14
+### Changed
+- Further improved documentation.
+- `WaitForIt.case_wait/3` will now raise a `CaseClauseError` on timeout if there is no `else` block.
+- `WaitForIt.cond_wait/2` will now raise a `CondClauseError` on timeout if there is no `else` block.
+
 ## 2.0.0 - 2023-11-02
 ### Changed
-- Much improved documentation
-- Breaking change to return value of `WaitForIt.wait/2`, `WaitForIt.case_wait/3`, and `WaitForIt.cond_wait/2`
-- Rewrite of WaitForIt internals
-- Moved legacy code to `WaitForIt.V1`
+- Much improved documentation.
+- Breaking change to return value of `WaitForIt.wait/2`, `WaitForIt.case_wait/3`, and `WaitForIt.cond_wait/2`.
+- Rewrite of WaitForIt internals.
+- Moved legacy code to `WaitForIt.V1`.
 
 ## 1.4.0 - 2023-10-24
 ### Added
