@@ -60,6 +60,12 @@ defmodule WaitForIt.Mixfile do
         "CHANGELOG.md": [title: "Changelog"],
         LICENSE: [title: "License"]
       ],
+      groups_for_docs: [
+        wait: &(&1[:section] == :wait),
+        case_wait: &(&1[:section] == :case_wait),
+        cond_wait: &(&1[:section] == :cond_wait),
+        signaling: &(&1[:section] == :signal)
+      ],
       filter_modules: fn module, _meta ->
         module in @doc_modules
       end

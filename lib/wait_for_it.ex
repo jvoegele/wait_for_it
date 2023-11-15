@@ -188,15 +188,16 @@ defmodule WaitForIt do
   use the `signal/1` function to tell the consumer that it might be time for it to check the
   buffer again.
 
-      # CONSUMER
-      # assume the existence of a `buffer_size` function
-      WaitForIt.wait buffer_size() >= 4, signal: :wait_for_buffer
+      # CONSUMER process
+      WaitForIt.wait Buffer.count() >= 4, signal: :wait_for_buffer
 
-      # PRODUCER
-      # put some things in buffer, then:
+      # PRODUCER process
+      # put some things in buffer, then signal waiters
+      Buffer.put(1)
+      Buffer.put(2)
       WaitForIt.signal(:wait_for_buffer)
 
-  Notice that the same signal name `:wait_for_buffer` is used by both the consumer and the
+  Notice that the same signal name, `:wait_for_buffer`, is used by both the consumer and the
   producer, which is what allows the producer to signal to the consumer that waiting conditions
   should be re-evaluated. It is important to realize that just because a signal has been emitted
   does not necessarily mean that any waiting conditions have been satisfied. Rather, a signal
@@ -340,6 +341,7 @@ defmodule WaitForIt do
       do_some_async_work()
       assert %Post{id: 42} = WaitForIt.wait Repo.get(Post, 42)
   """
+  @doc section: :wait
   defmacro wait(expression, opts \\ []) do
     quote do
       require WaitForIt.Waitable.BasicWait
@@ -352,6 +354,7 @@ defmodule WaitForIt do
   @doc """
   The same as `wait/2` but raises a `WaitForIt.TimeoutError` exception if it fails.
   """
+  @doc section: :wait
   defmacro wait!(expression, opts \\ []) do
     quote do
       require WaitForIt.Waitable.BasicWait
@@ -449,6 +452,7 @@ defmodule WaitForIt do
   > if interested.
 
   """
+  @doc section: :case_wait
   defmacro case_wait(expression, opts \\ [], blocks) do
     case_clauses = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
@@ -470,6 +474,7 @@ defmodule WaitForIt do
   @doc """
   The same as `case_wait/3` but raises a `WaitForIt.TimeoutError` exception if it fails.
   """
+  @doc section: :case_wait
   defmacro case_wait!(expression, opts \\ [], blocks) do
     case_clauses = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
@@ -542,6 +547,7 @@ defmodule WaitForIt do
         sound_the_alarm()
       end
   """
+  @doc section: :cond_wait
   defmacro cond_wait(opts \\ [], blocks) do
     cond_clauses = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
@@ -562,6 +568,7 @@ defmodule WaitForIt do
   @doc """
   The same as `cond_wait/2` but raises a `WaitForIt.TimeoutError` exception if it fails.
   """
+  @doc section: :cond_wait
   defmacro cond_wait!(opts \\ [], blocks) do
     cond_clauses = Keyword.get(blocks, :do)
     else_block = Keyword.get(blocks, :else)
@@ -583,6 +590,7 @@ defmodule WaitForIt do
   Send a signal to indicate that any processes waiting on the signal should re-evaluate their
   waiting conditions.
   """
+  @doc section: :signal
   def signal(signal) do
     Registry.dispatch(WaitForIt.SignalRegistry, signal, fn waiters ->
       for {pid, _env} <- waiters, do: send(pid, {:wait_for_it_signal, signal})
