@@ -586,6 +586,15 @@ defmodule WaitForIt do
     end
   end
 
+  defmacro match_wait(pattern, expression, opts \\ []) do
+    quote do
+      require WaitForIt.Waitable.MatchWait
+
+      waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
+      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+    end
+  end
+
   @doc """
   Send a signal to indicate that any processes waiting on the signal should re-evaluate their
   waiting conditions.

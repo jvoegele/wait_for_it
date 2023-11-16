@@ -38,6 +38,24 @@ defmodule WaitForIt.Evaluation do
     cond_clauses.()
   end
 
+  defmacro capture_pattern_match(pattern, expression) do
+    quote do
+      fn ->
+        value = unquote(expression)
+
+        if match?(unquote(pattern), value) do
+          {:halt, value}
+        else
+          {:cont, value}
+        end
+      end
+    end
+  end
+
+  def eval_pattern_match(pattern_match) do
+    pattern_match.()
+  end
+
   defmacro capture_with_clauses(with_clauses, do_block) do
     quote do
       fn ->

@@ -283,6 +283,64 @@ defmodule WaitForItTest do
     end
   end
 
+  describe "match_wait" do
+    test "waits for expression to match pattern" do
+      matched = match_wait({:ok, n} when n > 2, {:ok, increment_counter()})
+      assert {:ok, n} = matched
+      assert n > 2
+      assert n == Process.get(:counter)
+    end
+
+    test "accepts a :frequency option" do
+      matched =
+        match_wait({:ok, n} when n > 4, {:ok, increment_counter()}, frequency: 1, pre_wait: 1)
+
+      assert {:ok, n} = matched
+      assert n > 4
+      assert n == Process.get(:counter)
+    end
+
+    test "accepts a :timeout option" do
+      timeout = 10
+
+      %MatchError{term: {:ok, last_value}} =
+        assert_raise MatchError, fn ->
+          match_wait({:ok, n} when n > timeout, {:ok, increment_counter()},
+            timeout: timeout,
+            frequency: 1
+          )
+        end
+
+      assert last_value < timeout
+      assert Process.get(:counter) < timeout
+    end
+
+    test "accepts a :signal option" do
+      {:ok, counter} = init_counter(0)
+      _task = increment_task(counter, max: 1000, signal: :counter_wait)
+
+      assert {:ok, n} =
+               match_wait({:ok, n} when n > 99, {:ok, get_counter(counter)}, signal: :counter_wait)
+
+      assert n > 99
+      assert get_counter(counter) > 99
+    end
+
+    test "times out if signal not received" do
+      {:ok, counter} = init_counter(0)
+
+      %MatchError{term: {:ok, last_value}} =
+        assert_raise MatchError, fn ->
+          match_wait({:ok, n} when n > 99, {:ok, get_counter(counter)},
+            signal: :wait_in_vain,
+            timeout: 10
+          )
+        end
+
+      assert last_value < 99
+    end
+  end
+
   describe "multiple waiters using :signal option" do
     property "all wait until they receive the signal" do
       check all(
