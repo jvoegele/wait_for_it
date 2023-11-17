@@ -44,8 +44,9 @@ defmodule WaitForItTest do
 
   describe "wait/2" do
     test "waits for expression to be truthy" do
-      assert wait(increment_counter() > 2) == true
-      assert 3 == Process.get(:counter)
+      num = 2
+      assert wait(increment_counter() > num) == true
+      assert Process.get(:counter) == num + 1
     end
 
     test "accepts a :frequency option" do
