@@ -586,6 +586,8 @@ defmodule WaitForIt do
     end
   end
 
+  @doc false
+  # TODO: document the match_wait construct
   defmacro match_wait(pattern, expression, opts \\ []) do
     quote do
       require WaitForIt.Waitable.MatchWait
