@@ -266,9 +266,9 @@ defmodule WaitForIt do
   first evaluation.
 
   Instead of using a catch-all clause that always matches, an `else` clause can be used instead.
-  Both `case_wait/3` and `cond_wait/2` support `else` clauses, and these clauses are evaluated
-  whenever a waiting operation results in a timeout, which allows for customizing the behavior
-  and return value of the expression in the event of a timeout.
+  Unlike catch-all clauses, an `else` clause is only evaluated if there is a timeout during the
+  associated waiting operation. Both `case_wait/3` and `cond_wait/2` support `else` clauses, which
+  allows for customizing the behavior and return value of the expression in the event of a timeout.
   """
 
   @typedoc """
