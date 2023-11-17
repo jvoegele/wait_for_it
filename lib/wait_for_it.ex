@@ -256,7 +256,7 @@ defmodule WaitForIt do
 
   It is common to include "catch-all" clauses in normal Elixir `case/2` and `cond/1` expressions.
   Often, a `case/2` expression will include a final catch-all clause (like `_`) which will always
-  match, Similarly, a `cond/1` expression will typically include a final always-truthy condition
+  match. Similarly, a `cond/1` expression will typically include a final always-truthy condition
   (like `true`) which will always match.
 
   When using the waiting variants of these constructs, `case_wait/3` and `cond_wait/2`, it is
