@@ -140,6 +140,8 @@ defmodule WaitForIt do
   would either halt immediately (if the expression already saitisfies the waiting conditions)
   or never halt at all (if it does not satisfy the waiting conditions).
 
+  For this reason, it is expected that the value produced by waitable expressions may change on
+  each re-evaluation, and that it is possible for each re-evaluation to produce side-effects.
   It is important, however, that any side-effects that can occur during evaluation of the
   expression are safe and predictable, since the expression may be evaluated an inderminate
   number of times while waiting.
@@ -292,6 +294,8 @@ defmodule WaitForIt do
   """
   @type wait_opts :: [wait_opt()]
 
+  @type signal :: atom() | {atom(), atom()} | {atom(), atom(), atom()} | list(atom()) | term()
+
   @doc ~S"""
   Wait until the given `expression` evaluates to a truthy value.
 
@@ -367,8 +371,8 @@ defmodule WaitForIt do
   @doc ~S"""
   Wait until the given `expression` matches one of the case clauses in the given block.
 
-  Returns the value of the matching clause, the value of the optional `else` clause,
-  or the last evaluated value of the expression in the event of a timeout.
+  Returns the value of the matching clause, or the value of the optional `else` clause in the
+  event of a timeout.
 
   The `do` block passed to this macro must be a series of case clauses exactly like a built-in
   Elixir `case/2` expression. Just like a `case/2` expression, the clauses will attempt to be
@@ -496,8 +500,8 @@ defmodule WaitForIt do
   @doc ~S"""
   Wait until one of the expressions in the given block evaluates to a truthy value.
 
-  Returns the value corresponding with the matching expression, the value of the optional `else`
-  clause, or `nil` in the event of a timeout.
+  Returns the value corresponding with the matching expression, or the value of the optional
+  `else` clause in the event of a timeout.
 
   The `do` block passed to this macro must be a series of expressions exactly like a built-in
   Elixir `cond/1` expression. Just like a `cond/1` expression, the embedded expresions will be
@@ -602,6 +606,7 @@ defmodule WaitForIt do
   waiting conditions.
   """
   @doc section: :signal
+  @spec signal(signal()) :: :ok
   def signal(signal) do
     Registry.dispatch(WaitForIt.SignalRegistry, signal, fn waiters ->
       for {pid, _env} <- waiters, do: send(pid, {:wait_for_it_signal, signal})

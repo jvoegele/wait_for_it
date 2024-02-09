@@ -33,6 +33,11 @@ defmodule WaitForIt.Waiting do
   end
 
   defp polling_wait_loop(waitable, wait_opts, env) do
+    # TODO: Idea - maybe we don't need a separate concept of polling-based waiting at all.
+    # Maybe polling-based waiting could be implemented as signal-based waiting where a signal is
+    # emitted by a periodic timer that is started at the beginning of the wait and stopped at the
+    # end, similar to how the "time bomb" works below. A unique signal name could be generated
+    # and used for each waiting operation.
     time_bomb = start_time_bomb(self(), wait_opts[:timeout])
     wait_for_tick = fn -> wait_for_tick(wait_opts[:frequency], time_bomb) end
 
