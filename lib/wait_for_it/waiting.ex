@@ -5,7 +5,7 @@ defmodule WaitForIt.Waiting do
 
   @default_wait_opts [
     timeout: 5_000,
-    frequency: 100,
+    interval: 100,
     pre_wait: 0
   ]
 
@@ -19,7 +19,23 @@ defmodule WaitForIt.Waiting do
   end
 
   defp merge_wait_opts(user_specified_opts) do
-    Keyword.merge(@default_wait_opts, user_specified_opts)
+    Keyword.merge(@default_wait_opts, normalize_interval(user_specified_opts))
+  end
+
+  # `:interval` is the preferred option name; `:frequency` is supported as a legacy alias. If
+  # both are given, `:interval` wins. (`:frequency` is slated for removal in a future major.)
+  defp normalize_interval(opts) do
+    case {Keyword.has_key?(opts, :interval), Keyword.fetch(opts, :frequency)} do
+      {true, {:ok, _}} ->
+        IO.warn("WaitForIt received both :interval and :frequency; using :interval")
+        Keyword.delete(opts, :frequency)
+
+      {false, {:ok, frequency}} ->
+        opts |> Keyword.delete(:frequency) |> Keyword.put(:interval, frequency)
+
+      _ ->
+        opts
+    end
   end
 
   # A single, unified wait loop drives both polling-based and signal-based waiting.
@@ -73,7 +89,7 @@ defmodule WaitForIt.Waiting do
     cond do
       remaining <= 0 -> :timeout
       wait_opts[:signal] -> wait_for_signal(wait_opts[:signal], remaining)
-      true -> wait_for_tick(wait_opts[:frequency], remaining)
+      true -> wait_for_tick(wait_opts[:interval], remaining)
     end
   end
 

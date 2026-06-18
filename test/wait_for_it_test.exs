@@ -342,6 +342,31 @@ defmodule WaitForItTest do
     end
   end
 
+  describe "match_wait!" do
+    test "returns the matched value on success" do
+      assert {:ok, n} = match_wait!({:ok, n} when n > 2, {:ok, increment_counter()})
+      assert n > 2
+    end
+
+    test "raises WaitForIt.TimeoutError on timeout" do
+      assert_raise WaitForIt.TimeoutError, fn ->
+        match_wait!({:ok, n} when n > 10, {:ok, increment_counter()}, timeout: 10, interval: 1)
+      end
+    end
+  end
+
+  describe ":interval option" do
+    test "controls the polling interval" do
+      assert wait(increment_counter() > 4, interval: 1, pre_wait: 1)
+      assert 5 == Process.get(:counter)
+    end
+
+    test ":frequency is accepted as a legacy alias for :interval" do
+      assert wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
+      assert 5 == Process.get(:counter)
+    end
+  end
+
   describe "multiple waiters using :signal option" do
     property "all wait until they receive the signal" do
       check all(

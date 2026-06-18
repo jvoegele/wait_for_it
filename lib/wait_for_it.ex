@@ -22,7 +22,7 @@ defmodule WaitForIt do
 
   To use WaitForIt, you must first `require WaitForIt` or `import WaitForIt`.
 
-  There are three distinct forms of waiting provided. Jump to the docs for each for more
+  There are four distinct forms of waiting provided. Jump to the docs for each for more
   information.
 
   #### wait
@@ -35,6 +35,14 @@ defmodule WaitForIt do
       else
         IO.warn("Stopped waiting for the file to exist")
       end
+
+  #### match_wait
+
+  The `match_wait/3` macro waits until a given expression matches a given pattern, and binds out
+  of it. It is the most convenient form when waiting for a tagged result such as `{:ok, value}`.
+
+      # Wait up to two seconds for a record to exist, binding it directly.
+      {:ok, user} = WaitForIt.match_wait({:ok, %User{}}, Repo.fetch(User, id), timeout: 2_000)
 
   #### case_wait
 
@@ -62,7 +70,7 @@ defmodule WaitForIt do
 
       # Wait for up to one minute for either a specific file to exist OR for the top of the minute
       # to be reached.
-      WaitForIt.cond_wait(timeout: :timer.seconds(10), frequency: 500) do
+      WaitForIt.cond_wait(timeout: :timer.seconds(10), interval: 500) do
         File.exists?("data/process.json") ->
           IO.puts("Processing...")
 
@@ -74,16 +82,35 @@ defmodule WaitForIt do
 
   ### Options
 
-  All three forms of waiting accept the same set of options to control their behavior:
+  All forms of waiting accept the same set of options to control their behavior:
 
-  * `:timeout` - the amount of time to wait (in milliseconds) before giving up
-  * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-  * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
+  * `:timeout` - the amount of time to wait (in milliseconds) before giving up (default: `5_000`)
+  * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time (default: `0`)
+  * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (default: `100`)
   * `:signal` - disable polling and use a signal of the given name instead
 
+  > #### `:frequency` is now `:interval` {: .info}
+  >
+  > The `:frequency` option has been renamed to `:interval`, which more accurately describes a
+  > time value in milliseconds. `:frequency` continues to work as an alias and is slated for
+  > removal in a future major version. If both are given, `:interval` takes precedence.
+
   See [Polling-based waiting](#module-polling-based-waiting) for more information on the
-  `:frequency` option and [Signal-based waiting](#module-signal-based-waiting) for more
+  `:interval` option and [Signal-based waiting](#module-signal-based-waiting) for more
   information on the `:signal` option.
+
+  ### Timeout behavior
+
+  The forms of waiting differ in what happens when a wait times out. This table summarizes the
+  behavior; the non-bang forms mirror the corresponding built-in Elixir construct, while every
+  bang form raises a `WaitForIt.TimeoutError`.
+
+  | Construct           | On timeout (no `else`)     | On timeout (with `else`) | Bang variant raises |
+  | ------------------- | -------------------------- | ------------------------ | ------------------- |
+  | `wait/2`            | returns the last falsy value | _(no `else` clause)_   | `TimeoutError`      |
+  | `match_wait/3`      | raises `MatchError`        | _(no `else` clause)_     | `TimeoutError`      |
+  | `case_wait/3`       | raises `CaseClauseError`   | evaluates `else`         | `TimeoutError`      |
+  | `cond_wait/2`       | raises `CondClauseError`   | evaluates `else`         | `TimeoutError`      |
 
   ## Waitable expressions and waiting conditions
 
@@ -150,20 +177,9 @@ defmodule WaitForIt do
 
   By default, WaitForIt uses a polling-based waiting mode in which waitable expressions are
   periodically re-evaluated until waiting conditions have been met or a timeout has occurred.
-  The frequency at which waitable expressions are evaluated can be controlled by the `:frequency`
+  The interval at which waitable expressions are evaluated can be controlled by the `:interval`
   option, which specifies the delay between evaluations in milliseconds and is supported by all
-  forms of waiting.
-
-  > #### Polling "frequency" {: .neutral}
-  >
-  > The term "frequency" is something of a misnomer as it is used here, since it is a time value
-  > (milliseconds) rather than a rate. A more accurate term would be `:polling_interval`, or
-  > perhaps simply `:interval`, but `:frequency` is already in use.
-  >
-  > For the curious, the actual frequency in Hertz can be derived from the value of the
-  > `:frequency` option using this formula: `1 / (:frequency / 1000)`
-  >
-  > Thus a `:frequency` value of 100 yields a frequency of 10 Hz.
+  forms of waiting. (The legacy alias `:frequency` is also accepted; see the Options section.)
 
   ## Signal-based waiting
 
@@ -283,6 +299,7 @@ defmodule WaitForIt do
   """
   @type wait_opt ::
           {:timeout, non_neg_integer()}
+          | {:interval, non_neg_integer()}
           | {:frequency, non_neg_integer()}
           | {:pre_wait, non_neg_integer()}
           | {:signal, atom() | nil}
@@ -323,7 +340,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-    * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
+    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
 
   ## Examples
@@ -407,7 +424,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-    * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
+    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
 
   ## Examples
@@ -531,7 +548,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-    * `:frequency` - the polling frequency (in milliseconds) at which to re-evaluate conditions
+    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
 
   ## Examples
@@ -590,13 +607,65 @@ defmodule WaitForIt do
     end
   end
 
-  @doc false
+  @doc ~S"""
+  Wait until the given `expression` matches the given `pattern`.
+
+  Returns the value that the expression evaluated to when it matched the pattern. The `pattern`
+  may include a guard, exactly like the left-hand side of a `case/2` clause or a `<-` clause in
+  `with/1`.
+
+  Where `wait/2` waits for a *truthy* value, `match_wait/3` waits for a value that *matches a
+  pattern* and binds out of it. It is the most convenient form when you are waiting for a tagged
+  result such as `{:ok, value}` and want `value` directly.
+
+  > #### Beware bound variables in the pattern {: .warning}
+  >
+  > Just like `case/2`, variables in the pattern are *binding* unless pinned with `^`. The
+  > pattern is only a waiting condition, not an assertion about a specific value, so prefer
+  > guards (`when ...`) to express conditions on the matched value.
+
+  ## Options
+
+  See the `WaitForIt` module documentation for further discussion of these options.
+
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
+    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions
+    * `:signal` - disable polling and use a signal of the given name instead
+
+  ## Examples
+
+  Wait until a database record exists and bind it directly:
+
+      {:ok, user} = match_wait({:ok, %User{}}, Repo.fetch(User, id), timeout: 2_000)
+
+  Wait until a value satisfies a guard, then use the bound variable:
+
+      count = match_wait(n when n > 99, get_counter(), signal: :counter_wait)
+
+  On timeout (with no matching value), a `MatchError` is raised, exactly as if a normal
+  pattern match had failed. Use `match_wait!/3` to raise a `WaitForIt.TimeoutError` instead.
+  """
+  @doc section: :match_wait
   defmacro match_wait(pattern, expression, opts \\ []) do
     quote do
       require WaitForIt.Waitable.MatchWait
 
       waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
       WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+    end
+  end
+
+  @doc """
+  The same as `match_wait/3` but raises a `WaitForIt.TimeoutError` exception on timeout.
+  """
+  @doc section: :match_wait
+  defmacro match_wait!(pattern, expression, opts \\ []) do
+    quote do
+      require WaitForIt.Waitable.MatchWait
+
+      waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
     end
   end
 
