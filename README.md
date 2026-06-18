@@ -27,7 +27,7 @@ every time you need to wait for a condition is tedious and error-prone. WaitForI
 machinery in a handful of expressive macros so that "wait until X" reads like the code you'd
 already write — no hand-rolled polling loops, no sprinkled `Process.sleep/1` calls in tests.
 
-## The four forms of waiting
+## The five forms of waiting
 
 | Form | Waits until… | Looks like |
 | ---- | ------------ | ---------- |
@@ -35,6 +35,7 @@ already write — no hand-rolled polling loops, no sprinkled `Process.sleep/1` c
 | [`match_wait/3`](https://hexdocs.pm/wait_for_it/WaitForIt.html#match_wait/3) | an expression matches a pattern (binding out of it) | a `<-` clause |
 | [`case_wait/3`](https://hexdocs.pm/wait_for_it/WaitForIt.html#case_wait/3) | an expression matches one of several clauses | a `case` expression |
 | [`cond_wait/2`](https://hexdocs.pm/wait_for_it/WaitForIt.html#cond_wait/2) | one of several expressions is truthy | a `cond` expression |
+| [`with_wait/3`](https://hexdocs.pm/wait_for_it/WaitForIt.html#with_wait/3) | several composed waits all succeed | a `with` expression |
 
 Each form has a `!` variant (`wait!/2`, `match_wait!/3`, …) that raises `WaitForIt.TimeoutError`
 on timeout instead of returning a falsy value or raising the matching built-in error.
@@ -70,6 +71,8 @@ Then `require WaitForIt` (or `import WaitForIt`) where you want to use it.
 
 - [Waiting in tests](guides/waiting_in_tests.md)
 - [Polling vs signaling](guides/polling_vs_signaling.md)
+- [Composing waits](guides/composing_waits.md)
+- [Telemetry](guides/telemetry.md)
 - [Recipes](guides/recipes.md)
 
 Full API documentation is on [HexDocs](https://hexdocs.pm/wait_for_it).

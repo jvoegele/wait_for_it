@@ -67,7 +67,7 @@ defmodule WaitForIt.Test do
     # The pattern's variables are bound from the *final* match below, not from the waiting test,
     # so feed `match_wait!` a binding-free copy (variables replaced with `_`, pins preserved) to
     # avoid spurious "unused variable" warnings at the call site.
-    test_pattern = ignore_pattern_bindings(pattern)
+    test_pattern = WaitForIt.Evaluation.ignore_pattern_bindings(pattern)
 
     quote do
       require WaitForIt
@@ -174,29 +174,6 @@ defmodule WaitForIt.Test do
       end
     end
   end
-
-  # Replaces binding variables in a pattern with `_`, leaving pinned expressions (`^foo`) and
-  # everything else intact. Used to build a "match test" copy of a pattern that binds nothing.
-  defp ignore_pattern_bindings({:^, _, _} = pinned), do: pinned
-
-  defp ignore_pattern_bindings({name, meta, context})
-       when is_atom(name) and is_atom(context) do
-    {:_, meta, context}
-  end
-
-  defp ignore_pattern_bindings({form, meta, args}) when is_list(args) do
-    {ignore_pattern_bindings(form), meta, Enum.map(args, &ignore_pattern_bindings/1)}
-  end
-
-  defp ignore_pattern_bindings({left, right}) do
-    {ignore_pattern_bindings(left), ignore_pattern_bindings(right)}
-  end
-
-  defp ignore_pattern_bindings(list) when is_list(list) do
-    Enum.map(list, &ignore_pattern_bindings/1)
-  end
-
-  defp ignore_pattern_bindings(other), do: other
 
   @doc false
   def __opts__(opts, default_timeout, default_interval) do

@@ -106,10 +106,17 @@ defmodule WaitForIt.Waiting do
   end
 
   defp on_timeout(waitable, last_value, wait_opts, env) do
-    if wait_opts[:on_timeout] == :raise do
-      Waitable.Raise.raise_timeout_error(waitable, last_value, wait_opts[:timeout], env)
-    else
-      Waitable.handle_timeout(waitable, last_value, env)
+    case wait_opts[:on_timeout] do
+      :raise ->
+        Waitable.Raise.raise_timeout_error(waitable, last_value, wait_opts[:timeout], env)
+
+      # Used by `with_wait` clauses: a timeout yields the last (non-matching) value so the
+      # enclosing `with` routes it to the `else` block, exactly like an ordinary non-match.
+      :return_last_value ->
+        last_value
+
+      _ ->
+        Waitable.handle_timeout(waitable, last_value, env)
     end
   end
 

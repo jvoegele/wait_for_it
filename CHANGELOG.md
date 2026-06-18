@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
+- Added the `with_wait/3` and `with_wait!/3` macros for composing several waits in a `with`-style
+  pipeline. Clauses use `<-` (ordinary one-shot match) or `<~` (wait-for-match, with optional
+  per-clause options); a `<~` timeout flows to the `else` block like an ordinary non-match (or
+  raises `WaitForIt.TimeoutError` for `with_wait!`). See the "Composing waits" guide.
 - Added the `WaitForIt.Test` module with `assert_eventually/2` (truthy and pattern-binding
   forms), `refute_eventually/2`, and `assert_always/2` test assertions that fail with a regular
   `ExUnit.AssertionError` (including the source expression and last value) on timeout.

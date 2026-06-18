@@ -77,6 +77,7 @@ defmodule WaitForIt.Mixfile do
         "README.md": [title: "Overview"],
         "guides/waiting_in_tests.md": [title: "Waiting in tests"],
         "guides/polling_vs_signaling.md": [title: "Polling vs signaling"],
+        "guides/composing_waits.md": [title: "Composing waits"],
         "guides/telemetry.md": [title: "Telemetry"],
         "guides/recipes.md": [title: "Recipes"],
         "CHANGELOG.md": [title: "Changelog"],
@@ -90,6 +91,7 @@ defmodule WaitForIt.Mixfile do
         match_wait: &(&1[:section] == :match_wait),
         case_wait: &(&1[:section] == :case_wait),
         cond_wait: &(&1[:section] == :cond_wait),
+        with_wait: &(&1[:section] == :with_wait),
         signaling: &(&1[:section] == :signal)
       ],
       filter_modules: fn module, _meta ->
