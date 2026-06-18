@@ -1,7 +1,7 @@
 defmodule WaitForIt.Mixfile do
   use Mix.Project
 
-  @version "2.1.2"
+  @version "2.2.0"
   @source_url "https://github.com/jvoegele/wait_for_it"
 
   def project do
@@ -73,6 +73,7 @@ defmodule WaitForIt.Mixfile do
   defp docs do
     [
       main: "readme",
+      source_ref: "#{@version}",
       extras: [
         # Front matter first. Most readers skip it; placing it ahead of the Overview means the
         # Overview's "next" link flows into the guides rather than back to the changelog. The

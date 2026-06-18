@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.2.0 - 2026-06-18
 ### Added
 - Added the `with_wait/3` and `with_wait!/3` macros for composing several waits in a `with`-style
   pipeline. Clauses use `<-` (ordinary one-shot match) or `<~` (wait-for-match, with optional
@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   exposing wait duration, evaluation count, and outcome.
 - Added backoff support: the `:interval` option now accepts a 1-arity function of the attempt
   number, plus a new `WaitForIt.Backoff` module with `constant/1` and `exponential/1` strategies.
-- Added guides (Waiting in tests, Polling vs signaling, Telemetry, Recipes) and a rewritten README.
+- Added guides (Waiting in tests, Polling vs signaling, Composing waits, Recipes, Telemetry) and a
+  rewritten README.
 - Added GitHub Actions CI (test matrix, formatting, Credo, Dialyzer).
 
 ### Changed
@@ -79,7 +80,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0] - 2017-08-28
 - Initial release supporting `wait`, `case_wait`, and `cond_wait` with either polling or condition variable signaling.
 
-[Unreleased]: https://github.com/jvoegele/wait_for_it/compare/v1.1.0...HEAD
+[2.2.0]: https://github.com/jvoegele/wait_for_it/compare/2.1.2...2.2.0
 [1.1.1]: https://github.com/jvoegele/wait_for_it/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/jvoegele/wait_for_it/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jvoegele/wait_for_it/compare/init...v1.0.0
