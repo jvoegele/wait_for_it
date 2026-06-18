@@ -22,7 +22,7 @@ defmodule WaitForIt do
 
   To use WaitForIt, you must first `require WaitForIt` or `import WaitForIt`.
 
-  There are four distinct forms of waiting provided. Jump to the docs for each for more
+  There are five distinct forms of waiting provided. Jump to the docs for each for more
   information.
 
   #### wait
@@ -80,6 +80,21 @@ defmodule WaitForIt do
         IO.warn("Stopped waiting since neither condition ever became truthy")
       end
 
+  #### with_wait
+
+  The `with_wait/3` macro composes several waits in a pipeline. It looks and acts like an Elixir
+  `with/1` expression, except that its `<~` clauses *wait* until their expression matches.
+
+      # Wait for an account to load, then for its balance, short-circuiting to else on timeout.
+      WaitForIt.with_wait on(
+        {:ok, account} <~ {load_account(token), timeout: 2_000},
+        {:ok, balance} <~ fetch_balance(account)
+      ) do
+        {:ok, balance}
+      else
+        not_ready -> {:error, {:timed_out, not_ready}}
+      end
+
   ### Options
 
   All forms of waiting accept the same set of options to control their behavior:
@@ -105,12 +120,13 @@ defmodule WaitForIt do
   behavior; the non-bang forms mirror the corresponding built-in Elixir construct, while every
   bang form raises a `WaitForIt.TimeoutError`.
 
-  | Construct           | On timeout (no `else`)     | On timeout (with `else`) | Bang variant raises |
-  | ------------------- | -------------------------- | ------------------------ | ------------------- |
-  | `wait/2`            | returns the last falsy value | _(no `else` clause)_   | `TimeoutError`      |
-  | `match_wait/3`      | raises `MatchError`        | _(no `else` clause)_     | `TimeoutError`      |
-  | `case_wait/3`       | raises `CaseClauseError`   | evaluates `else`         | `TimeoutError`      |
-  | `cond_wait/2`       | raises `CondClauseError`   | evaluates `else`         | `TimeoutError`      |
+  | Construct           | On timeout (no `else`)       | On timeout (with `else`)   | Bang variant raises |
+  | ------------------- | ---------------------------- | -------------------------- | ------------------- |
+  | `wait/2`            | returns the last falsy value | _(no `else` clause)_       | `TimeoutError`      |
+  | `match_wait/3`      | raises `MatchError`          | _(no `else` clause)_       | `TimeoutError`      |
+  | `case_wait/3`       | raises `CaseClauseError`     | evaluates `else`           | `TimeoutError`      |
+  | `cond_wait/2`       | raises `CondClauseError`     | evaluates `else`           | `TimeoutError`      |
+  | `with_wait/3`       | returns the last value       | evaluates `else` (a `<~` timeout flows here) | `TimeoutError` (`<~` clauses) |
 
   ## Waitable expressions and waiting conditions
 
@@ -695,6 +711,85 @@ defmodule WaitForIt do
 
       waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
       WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+    end
+  end
+
+  @doc ~S"""
+  Compose several waits in a `with`-style pipeline.
+
+  `with_wait` looks and behaves like an Elixir `with/1` expression, except that its clauses can
+  *wait*. The clauses are wrapped in `on(...)`, and each clause is one of:
+
+    * `pattern <- expression` - an ordinary `with` clause, evaluated once. If it matches, bind and
+      continue; otherwise route to the `else` block.
+    * `pattern <~ expression` - a *wait-for-match* clause: re-evaluate `expression` until it
+      matches `pattern`, then bind and continue.
+    * `pattern <~ {expression, opts}` - a wait-for-match clause with per-clause options (such as
+      `timeout:`/`interval:`/`signal:`) that override the global options.
+
+  Global options for every `<~` clause may be given between the `on(...)` wrapper and the block:
+  `with_wait on(...), timeout: 2_000 do ... end`.
+
+  On success, the `do` block is evaluated and its value returned. If any clause fails to match —
+  including a `<~` clause that *times out* — control transfers to the `else` block (or, if there
+  is no `else`, the non-matching value becomes the result), exactly like `with/1`. A `<~` timeout
+  is therefore indistinguishable from an ordinary non-match: the last evaluated value flows to
+  `else`.
+
+  > #### `<~` precedence {: .warning}
+  >
+  > `<~` binds more tightly than `when` and the comparison operators, so guards and right-hand
+  > sides that use those operators must be parenthesized:
+  >
+  >     ({:ok, n} when n > 5) <~ poll()
+  >     found <~ (Enum.find(items, &ready?/1) != nil)
+  >
+  > Simple clauses such as `{:ok, x} <~ fetch(id)` and `{:ok, x} <~ {fetch(id), timeout: 100}`
+  > need no parentheses. For a wait dominated by a single complex condition, prefer `case_wait/3`.
+
+  ## Examples
+
+      with_wait on(
+        {:ok, token}   <-  authenticate(user),
+        {:ok, account} <~  {load_account(token), timeout: 2_000},
+        {:ok, balance} <~  fetch_balance(account)
+      ), interval: 50 do
+        {:ok, balance}
+      else
+        {:error, reason} -> {:error, reason}
+        still_pending -> {:still_waiting, still_pending}
+      end
+  """
+  @doc section: :with_wait
+  defmacro with_wait(clauses, opts \\ [], blocks) do
+    WaitForIt.WithWait.build(clauses, opts, blocks, :return_last_value)
+  end
+
+  @doc """
+  The same as `with_wait/3` but a `<~` clause that times out raises a `WaitForIt.TimeoutError`
+  instead of routing to the `else` block.
+
+  An `else` block is still honored for ordinary `<-` clauses that do not match.
+  """
+  @doc section: :with_wait
+  defmacro with_wait!(clauses, opts \\ [], blocks) do
+    WaitForIt.WithWait.build(clauses, opts, blocks, :raise)
+  end
+
+  @doc false
+  # Internal building block for `with_wait` clauses: waits until `expression` matches `pattern`,
+  # returning the matched value. The timeout behavior is controlled by the `:on_timeout` option
+  # carried in `opts` (`:return_last_value` for `with_wait`, `:raise` for `with_wait!`).
+  defmacro __wait_clause__(pattern, expression, opts) do
+    match_pattern = WaitForIt.Evaluation.ignore_pattern_bindings(pattern)
+
+    quote do
+      require WaitForIt.Waitable.MatchWait
+
+      waitable =
+        WaitForIt.Waitable.MatchWait.create(unquote(match_pattern), unquote(expression))
+
+      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
     end
   end
 
