@@ -365,6 +365,66 @@ defmodule WaitForItTest do
       assert wait(increment_counter() > 4, frequency: 1, pre_wait: 1)
       assert 5 == Process.get(:counter)
     end
+
+    test "accepts a WaitForIt.Backoff function as :interval" do
+      backoff = WaitForIt.Backoff.exponential(start: 1, max: 5)
+      assert wait(increment_counter() > 3, interval: backoff, pre_wait: 1)
+      assert Process.get(:counter) >= 4
+    end
+  end
+
+  describe "telemetry" do
+    setup do
+      handler_id = "wait-for-it-test-#{System.unique_integer([:positive])}"
+      test_pid = self()
+
+      :telemetry.attach_many(
+        handler_id,
+        [
+          [:wait_for_it, :wait, :start],
+          [:wait_for_it, :wait, :stop],
+          [:wait_for_it, :wait, :exception]
+        ],
+        &__MODULE__.relay_telemetry/4,
+        test_pid
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+    end
+
+    def relay_telemetry(event, measurements, metadata, test_pid) do
+      send(test_pid, {:telemetry, event, measurements, metadata})
+    end
+
+    test "emits start and stop events on a successful wait" do
+      assert wait(increment_counter() > 2, interval: 1)
+
+      assert_received {:telemetry, [:wait_for_it, :wait, :start], start_meas, start_meta}
+      assert is_integer(start_meas.system_time)
+      assert is_integer(start_meas.monotonic_time)
+      assert start_meta.wait_type == :wait
+
+      assert_received {:telemetry, [:wait_for_it, :wait, :stop], stop_meas, stop_meta}
+      assert stop_meta.result == :matched
+      assert stop_meas.evaluations >= 1
+      assert is_integer(stop_meas.duration)
+    end
+
+    test "emits a stop event with result: :timeout on timeout" do
+      refute wait(increment_counter() > 1_000, timeout: 10, interval: 1)
+      assert_received {:telemetry, [:wait_for_it, :wait, :stop], _meas, %{result: :timeout}}
+    end
+
+    test "emits an exception event when evaluation crashes" do
+      assert_raise RuntimeError, fn ->
+        wait(raise("boom"))
+      end
+
+      assert_received {:telemetry, [:wait_for_it, :wait, :exception], _meas, meta}
+      assert meta.kind == :error
+      assert %RuntimeError{} = meta.reason
+      refute_received {:telemetry, [:wait_for_it, :wait, :stop], _, _}
+    end
   end
 
   describe "multiple waiters using :signal option" do

@@ -35,6 +35,7 @@ defmodule WaitForIt.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:telemetry, "~> 1.0"},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -60,7 +61,13 @@ defmodule WaitForIt.Mixfile do
     ]
   end
 
-  @doc_modules [WaitForIt, WaitForIt.Waitable, WaitForIt.TimeoutError, WaitForIt.V1]
+  @doc_modules [
+    WaitForIt,
+    WaitForIt.Backoff,
+    WaitForIt.Waitable,
+    WaitForIt.TimeoutError,
+    WaitForIt.V1
+  ]
 
   defp docs do
     [
@@ -69,6 +76,7 @@ defmodule WaitForIt.Mixfile do
         "README.md": [title: "Overview"],
         "guides/waiting_in_tests.md": [title: "Waiting in tests"],
         "guides/polling_vs_signaling.md": [title: "Polling vs signaling"],
+        "guides/telemetry.md": [title: "Telemetry"],
         "guides/recipes.md": [title: "Recipes"],
         "CHANGELOG.md": [title: "Changelog"],
         LICENSE: [title: "License"]

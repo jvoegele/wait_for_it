@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Documented and promoted the `match_wait/3` construct, and added a `match_wait!/3` bang variant.
 - Added the `:interval` option as the preferred name for the polling interval. `:frequency`
   continues to work as an alias and is slated for removal in a future major version.
-- Added guides (Waiting in tests, Polling vs signaling, Recipes) and a rewritten README.
+- Added `:telemetry` events (`[:wait_for_it, :wait, :start | :stop | :exception]`) for every wait,
+  exposing wait duration, evaluation count, and outcome.
+- Added backoff support: the `:interval` option now accepts a 1-arity function of the attempt
+  number, plus a new `WaitForIt.Backoff` module with `constant/1` and `exponential/1` strategies.
+- Added guides (Waiting in tests, Polling vs signaling, Telemetry, Recipes) and a rewritten README.
 - Added GitHub Actions CI (test matrix, formatting, Credo, Dialyzer).
 
 ### Changed

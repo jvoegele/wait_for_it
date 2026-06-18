@@ -181,6 +181,11 @@ defmodule WaitForIt do
   option, which specifies the delay between evaluations in milliseconds and is supported by all
   forms of waiting. (The legacy alias `:frequency` is also accepted; see the Options section.)
 
+  The `:interval` option may also be a 1-arity function of the attempt number, which enables
+  backoff strategies — for example, polling less aggressively as time goes on so as not to
+  hammer a struggling dependency. See `WaitForIt.Backoff` for ready-made strategies such as
+  exponential backoff with jitter.
+
   ## Signal-based waiting
 
   Signal-based waiting obviates the need for polling by using a signaling mechanism to indicate
@@ -221,6 +226,30 @@ defmodule WaitForIt do
   does not necessarily mean that any waiting conditions have been satisfied. Rather, a signal
   indicates that waiters should re-evaluate their waiting conditions to determine if they should
   continue to wait or not.
+
+  ## Telemetry
+
+  Every wait emits [`:telemetry`](https://hexdocs.pm/telemetry) events, so you can observe how
+  long waits take, how many evaluations they require, and how often they time out.
+
+    * `[:wait_for_it, :wait, :start]` - emitted when a wait begins.
+      * Measurements: `%{system_time, monotonic_time}`
+      * Metadata: `%{wait_type, timeout, interval, signal, env}`
+
+    * `[:wait_for_it, :wait, :stop]` - emitted when a wait finishes (whether the condition was
+      met or the wait timed out).
+      * Measurements: `%{duration, evaluations}` (`duration` is in native time units;
+        `evaluations` is the number of times the waitable expression was evaluated)
+      * Metadata: `%{wait_type, timeout, interval, signal, env, result, last_value}` where
+        `result` is `:matched` or `:timeout`
+
+    * `[:wait_for_it, :wait, :exception]` - emitted only if evaluating the waitable expression
+      raises, throws, or exits unexpectedly. A timeout is *not* an exception; it is reported as a
+      `:stop` event with `result: :timeout`.
+      * Measurements: `%{duration}`
+      * Metadata: `%{wait_type, timeout, interval, signal, env, kind, reason, stacktrace}`
+
+  See the [Telemetry guide](telemetry.html) for an example of attaching handlers.
 
   ## Using WaitForIt in tests
 
@@ -340,7 +369,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (alias: `:frequency`)
+    * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function, at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
 
   ## Examples
@@ -424,7 +453,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (alias: `:frequency`)
+    * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function, at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
 
   ## Examples
@@ -548,7 +577,7 @@ defmodule WaitForIt do
 
     * `:timeout` - the amount of time to wait (in milliseconds) before giving up
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
-    * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions (alias: `:frequency`)
+    * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function, at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
 
   ## Examples

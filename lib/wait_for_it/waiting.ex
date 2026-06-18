@@ -3,6 +3,8 @@ defmodule WaitForIt.Waiting do
 
   alias WaitForIt.Waitable
 
+  @telemetry_event [:wait_for_it, :wait]
+
   @default_wait_opts [
     timeout: 5_000,
     interval: 100,
@@ -38,36 +40,67 @@ defmodule WaitForIt.Waiting do
     end
   end
 
-  # A single, unified wait loop drives both polling-based and signal-based waiting.
+  # A single, unified wait loop drives both polling-based and signal-based waiting, wrapped in
+  # `:telemetry` start/stop/exception events.
   #
   # The total time budget is captured once as a monotonic deadline so that the timeout is
   # immune to wall-clock adjustments (NTP steps, container migration, etc.). Each iteration
   # evaluates the waitable; if it has not yet halted, control blocks until either the next
   # evaluation is due (a polling tick or a received signal) or the deadline is reached.
   defp wait_loop(waitable, wait_opts, env) do
-    pre_wait(wait_opts[:pre_wait])
+    metadata = telemetry_metadata(waitable, wait_opts, env)
+    start_time = System.monotonic_time()
+
+    :telemetry.execute(
+      @telemetry_event ++ [:start],
+      %{system_time: System.system_time(), monotonic_time: start_time},
+      metadata
+    )
 
     signal = wait_opts[:signal]
-    deadline = monotonic_now() + wait_opts[:timeout]
 
-    if signal, do: register_for_signal(signal, env)
+    {result, last_value, evaluations} =
+      try do
+        pre_wait(wait_opts[:pre_wait])
+        if signal, do: register_for_signal(signal, env)
+        deadline = monotonic_now() + wait_opts[:timeout]
+        eval_loop(waitable, wait_opts, env, deadline, 1)
+      rescue
+        exception ->
+          emit_exception(metadata, start_time, :error, exception, __STACKTRACE__)
+          reraise exception, __STACKTRACE__
+      catch
+        kind, reason ->
+          emit_exception(metadata, start_time, kind, reason, __STACKTRACE__)
+          :erlang.raise(kind, reason, __STACKTRACE__)
+      after
+        if signal, do: unregister_from_signal(signal)
+      end
 
-    try do
-      eval_loop(waitable, wait_opts, env, deadline)
-    after
-      if signal, do: unregister_from_signal(signal)
+    :telemetry.execute(
+      @telemetry_event ++ [:stop],
+      %{duration: System.monotonic_time() - start_time, evaluations: evaluations},
+      Map.merge(metadata, %{result: result, last_value: last_value})
+    )
+
+    case result do
+      :matched -> last_value
+      :timeout -> on_timeout(waitable, last_value, wait_opts, env)
     end
   end
 
-  defp eval_loop(waitable, wait_opts, env, deadline) do
+  # Returns `{:matched | :timeout, last_value, evaluation_count}`. A timeout is a normal outcome
+  # reported here (and as a `:stop` telemetry event); only an unexpected crash during evaluation
+  # surfaces as an exception.
+  defp eval_loop(waitable, wait_opts, env, deadline, attempt) do
     case Waitable.evaluate(waitable, env) do
       {:halt, value} ->
-        value
+        {:matched, value, attempt}
 
       {:cont, value} ->
-        case wait_for_next_evaluation(wait_opts, deadline) do
-          :loop -> eval_loop(waitable, wait_opts, env, deadline)
-          :timeout -> on_timeout(waitable, value, wait_opts, env)
+        case wait_for_next_evaluation(wait_opts, deadline, attempt) do
+          :loop -> eval_loop(waitable, wait_opts, env, deadline, attempt + 1)
+          :timeout -> {:timeout, value, attempt}
         end
     end
   end
@@ -83,15 +116,20 @@ defmodule WaitForIt.Waiting do
   # Blocks until it is time to re-evaluate the waitable (`:loop`) or the deadline has passed
   # (`:timeout`). Signal-based waiting blocks on the mailbox; polling-based waiting sleeps for
   # one interval. In both cases the remaining time bounds the wait so the deadline is honored.
-  defp wait_for_next_evaluation(wait_opts, deadline) do
+  defp wait_for_next_evaluation(wait_opts, deadline, attempt) do
     remaining = deadline - monotonic_now()
 
     cond do
       remaining <= 0 -> :timeout
       wait_opts[:signal] -> wait_for_signal(wait_opts[:signal], remaining)
-      true -> wait_for_tick(wait_opts[:interval], remaining)
+      true -> wait_for_tick(interval_for(wait_opts[:interval], attempt), remaining)
     end
   end
+
+  # The `:interval` option is either a constant number of milliseconds or a 1-arity function of
+  # the attempt number (see `WaitForIt.Backoff`), allowing for backoff strategies.
+  defp interval_for(interval, _attempt) when is_integer(interval), do: interval
+  defp interval_for(interval, attempt) when is_function(interval, 1), do: interval.(attempt)
 
   defp wait_for_signal(signal, remaining) do
     receive do
@@ -124,5 +162,23 @@ defmodule WaitForIt.Waiting do
 
   defp unregister_from_signal(signal) do
     Registry.unregister(WaitForIt.SignalRegistry, signal)
+  end
+
+  defp telemetry_metadata(waitable, wait_opts, env) do
+    %{
+      wait_type: Waitable.wait_type(waitable),
+      timeout: wait_opts[:timeout],
+      interval: wait_opts[:interval],
+      signal: wait_opts[:signal],
+      env: env
+    }
+  end
+
+  defp emit_exception(metadata, start_time, kind, reason, stacktrace) do
+    :telemetry.execute(
+      @telemetry_event ++ [:exception],
+      %{duration: System.monotonic_time() - start_time},
+      Map.merge(metadata, %{kind: kind, reason: reason, stacktrace: stacktrace})
+    )
   end
 end
