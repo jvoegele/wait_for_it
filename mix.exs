@@ -63,6 +63,7 @@ defmodule WaitForIt.Mixfile do
 
   @doc_modules [
     WaitForIt,
+    WaitForIt.Test,
     WaitForIt.Backoff,
     WaitForIt.Waitable,
     WaitForIt.TimeoutError,

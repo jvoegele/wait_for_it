@@ -6,7 +6,40 @@ can make an assertion — a background job to run, a message to propagate, a rec
 database. WaitForIt replaces brittle `Process.sleep/1` calls and hand-rolled polling loops with
 expressive waits that fail fast and read clearly.
 
-All examples assume you have imported WaitForIt in your test module:
+## The quickest path: `WaitForIt.Test` assertions
+
+For most tests, the `WaitForIt.Test` assertions are the most ergonomic option. They wait and
+re-evaluate just like the core macros, but on timeout they fail with a normal
+`ExUnit.AssertionError` — including the source expression and the last value seen — so failures
+read like any other ExUnit failure.
+
+```elixir
+defmodule MyApp.SomeTest do
+  use ExUnit.Case
+  use WaitForIt.Test
+end
+```
+
+```elixir
+# Wait until an expression becomes truthy:
+assert_eventually Repo.get(User, user_id).confirmed
+
+# Wait until a pattern matches, binding out of it for later assertions:
+assert_eventually {:ok, user} = fetch_user(user_id), timeout: 2_000
+assert user.first_name == "Elijah"
+
+# Assert something never happens within a window:
+refute_eventually error_reported?()
+
+# Assert something holds for the whole window:
+assert_always circuit_closed?(), timeout: 500
+```
+
+These default to test-friendly timeouts (`assert_eventually` waits up to 1s; `refute_eventually`
+and `assert_always` sample for 100ms). See `WaitForIt.Test` for details.
+
+The rest of this guide covers the core macros directly, which you can also use in tests when you
+want their exact return values or timeout semantics. The remaining examples assume:
 
 ```elixir
 defmodule MyApp.SomeTest do

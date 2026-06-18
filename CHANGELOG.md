@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
+- Added the `WaitForIt.Test` module with `assert_eventually/2` (truthy and pattern-binding
+  forms), `refute_eventually/2`, and `assert_always/2` test assertions that fail with a regular
+  `ExUnit.AssertionError` (including the source expression and last value) on timeout.
 - Documented and promoted the `match_wait/3` construct, and added a `match_wait!/3` bang variant.
 - Added the `:interval` option as the preferred name for the polling interval. `:frequency`
   continues to work as an alias and is slated for removal in a future major version.
