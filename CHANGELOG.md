@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 2.2.1 - 2026-06-18
+### Changed
+- Restructured the documentation so the README is the single source for the `WaitForIt` module
+  documentation, removing the duplicated Overview page. Documentation only; no API or behavioral
+  changes.
+
 ## 2.2.0 - 2026-06-18
 ### Added
 - Added the `with_wait/3` and `with_wait!/3` macros for composing several waits in a `with`-style
@@ -80,6 +86,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0] - 2017-08-28
 - Initial release supporting `wait`, `case_wait`, and `cond_wait` with either polling or condition variable signaling.
 
+[2.2.1]: https://github.com/jvoegele/wait_for_it/compare/2.2.0...2.2.1
 [2.2.0]: https://github.com/jvoegele/wait_for_it/compare/2.1.2...2.2.0
 [1.1.1]: https://github.com/jvoegele/wait_for_it/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/jvoegele/wait_for_it/compare/v1.0.0...v1.1.0
