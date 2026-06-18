@@ -11,6 +11,7 @@ defmodule WaitForIt.Mixfile do
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      dialyzer: dialyzer(),
 
       # Hex
       package: package(),
@@ -34,10 +35,18 @@ defmodule WaitForIt.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.30.9", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:stream_data, "~> 0.6", only: [:dev, :test]}
+      {:stream_data, "~> 1.0", only: [:dev, :test]}
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_local_path: "priv/plts",
+      plt_core_path: "priv/plts",
+      plt_add_apps: [:ex_unit]
     ]
   end
 

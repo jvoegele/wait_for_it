@@ -22,12 +22,10 @@ defmodule WaitForIt.Waitable.CondWait do
     def wait_type(%CondWait{}), do: :cond_wait
 
     def evaluate(%CondWait{cond_clauses: cond_clauses}, _env) do
-      try do
-        result = WaitForIt.Evaluation.eval_cond_expression(cond_clauses)
-        {:halt, result}
-      rescue
-        CondClauseError -> {:cont, nil}
-      end
+      result = WaitForIt.Evaluation.eval_cond_expression(cond_clauses)
+      {:halt, result}
+    rescue
+      CondClauseError -> {:cont, nil}
     end
 
     def handle_timeout(%CondWait{else_block: nil}, _last_value, env) do

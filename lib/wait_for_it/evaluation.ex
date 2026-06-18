@@ -59,6 +59,7 @@ defmodule WaitForIt.Evaluation do
   defmacro capture_with_clauses(with_clauses, do_block) do
     quote do
       fn ->
+        # credo:disable-for-next-line Credo.Check.Refactor.WithClauses
         with unquote(with_clauses) do
           unquote(do_block)
         end
