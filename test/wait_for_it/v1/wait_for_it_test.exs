@@ -2,6 +2,9 @@ defmodule WaitForIt.V1.WaitForItTest do
   use ExUnit.Case
   use ExUnitProperties
 
+  # This module intentionally exercises the deprecated `WaitForIt.V1` API, so compiling it
+  # emits deprecation warnings. That is expected: these tests guard the legacy behavior until
+  # the V1 module is removed in a future major version.
   import WaitForIt.V1
 
   @moduletag :legacy

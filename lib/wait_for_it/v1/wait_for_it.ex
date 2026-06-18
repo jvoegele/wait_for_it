@@ -29,6 +29,7 @@ defmodule WaitForIt.V1 do
         {:timeout, timeout} -> IO.puts("Gave up after #{timeout} milliseconds")
       end
   """
+  @deprecated "Use WaitForIt.wait/2 instead"
   defmacro wait(expression, opts \\ []) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
@@ -62,6 +63,7 @@ defmodule WaitForIt.V1 do
     * `:signal` - disable polling and use a condition variable of the given name instead
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
   """
+  @deprecated "Use WaitForIt.wait!/2 instead"
   defmacro wait!(expression, opts \\ []) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
@@ -149,6 +151,7 @@ defmodule WaitForIt.V1 do
         church_bell_chimes()
       end
   """
+  @deprecated "Use WaitForIt.case_wait/3 instead"
   defmacro case_wait(expression, opts \\ [], blocks) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
@@ -215,6 +218,7 @@ defmodule WaitForIt.V1 do
         sound_the_alarm()
       end
   """
+  @deprecated "Use WaitForIt.cond_wait/2 instead"
   defmacro cond_wait(opts \\ [], blocks) do
     frequency = Keyword.get(opts, :frequency, 100)
     timeout = Keyword.get(opts, :timeout, 5_000)
@@ -245,6 +249,7 @@ defmodule WaitForIt.V1 do
   variable since the module is used as a namespace for condition variables. This is to prevent
   accidental name collisions as well as to enforce good practice for encapsulation.
   """
+  @deprecated "Use WaitForIt.signal/1 instead"
   defmacro signal(condition_var) do
     quote do
       require WaitForIt.V1.Helpers, as: Helpers
