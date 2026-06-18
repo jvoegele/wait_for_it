@@ -99,3 +99,7 @@ else
   {:message_queue_len, len} -> raise "worker overwhelmed (#{len} queued messages)"
 end
 ```
+
+---
+
+**Previous:** [Composing waits](composing_waits.md) · **Next:** [Telemetry](telemetry.md)

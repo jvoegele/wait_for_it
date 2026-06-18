@@ -89,3 +89,9 @@ import Telemetry.Metrics
 
 Because metadata includes `result`, you can alert on a rising rate of `result: :timeout` for a
 given `wait_type` — an early signal that a dependency is getting slow.
+
+---
+
+**Previous:** [Recipes](recipes.md)
+
+That's the end of the guides. See the `WaitForIt` module for the complete API reference.

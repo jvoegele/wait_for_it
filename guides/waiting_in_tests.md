@@ -107,3 +107,7 @@ evaluated before giving up.
   of a failing test obvious at a glance.
 - **Avoid catch-all clauses** in `case_wait/3` and `cond_wait/2` — a clause that always matches
   ends the wait on the first evaluation. Use an `else` block instead.
+
+---
+
+**Next:** [Polling vs signaling](polling_vs_signaling.md)

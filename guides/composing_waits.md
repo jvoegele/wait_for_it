@@ -106,3 +106,7 @@ parentheses. If a wait is dominated by a single complex condition, `case_wait/3`
 Each `<~` clause runs as its own wait, so it emits the standard
 `[:wait_for_it, :wait, :start | :stop | :exception]` telemetry events. See the
 [Telemetry guide](telemetry.md).
+
+---
+
+**Previous:** [Polling vs signaling](polling_vs_signaling.md) · **Next:** [Recipes](recipes.md)

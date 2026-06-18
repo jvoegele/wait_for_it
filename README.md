@@ -69,11 +69,15 @@ Then `require WaitForIt` (or `import WaitForIt`) where you want to use it.
 
 ## Guides
 
-- [Waiting in tests](guides/waiting_in_tests.md)
-- [Polling vs signaling](guides/polling_vs_signaling.md)
-- [Composing waits](guides/composing_waits.md)
-- [Telemetry](guides/telemetry.md)
-- [Recipes](guides/recipes.md)
+Start here and read in order, or jump to whatever fits the task at hand:
+
+1. [Waiting in tests](guides/waiting_in_tests.md) — the most common entry point: ExUnit
+   assertions and using the waiting macros in tests.
+2. [Polling vs signaling](guides/polling_vs_signaling.md) — the two waiting modes and when to use
+   each.
+3. [Composing waits](guides/composing_waits.md) — chaining several waits with `with_wait/3`.
+4. [Recipes](guides/recipes.md) — ready-made patterns for databases, processes, HTTP, and more.
+5. [Telemetry](guides/telemetry.md) — observing waits in production.
 
 Full API documentation is on [HexDocs](https://hexdocs.pm/wait_for_it).
 

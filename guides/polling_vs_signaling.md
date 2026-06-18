@@ -69,3 +69,7 @@ Signaling is the right choice when:
 
 When in doubt, start with polling. Reach for signaling once polling latency or overhead becomes a
 problem and you control the code that drives the change.
+
+---
+
+**Previous:** [Waiting in tests](waiting_in_tests.md) · **Next:** [Composing waits](composing_waits.md)

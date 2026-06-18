@@ -74,14 +74,18 @@ defmodule WaitForIt.Mixfile do
     [
       main: "readme",
       extras: [
+        # Front matter first. Most readers skip it; placing it ahead of the Overview means the
+        # Overview's "next" link flows into the guides rather than back to the changelog. The
+        # Overview remains the landing page (index.html) regardless of its sidebar position.
+        "CHANGELOG.md": [title: "Changelog"],
+        LICENSE: [title: "License"],
         "README.md": [title: "Overview"],
+        # Guides, ordered as a learning path.
         "guides/waiting_in_tests.md": [title: "Waiting in tests"],
         "guides/polling_vs_signaling.md": [title: "Polling vs signaling"],
         "guides/composing_waits.md": [title: "Composing waits"],
-        "guides/telemetry.md": [title: "Telemetry"],
         "guides/recipes.md": [title: "Recipes"],
-        "CHANGELOG.md": [title: "Changelog"],
-        LICENSE: [title: "License"]
+        "guides/telemetry.md": [title: "Telemetry"]
       ],
       groups_for_extras: [
         Guides: ~r{guides/.+\.md}

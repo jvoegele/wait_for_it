@@ -4,7 +4,7 @@ defmodule WaitForIt do
 
   ## Overview
 
-  Elixir is a functional programming language with an emphasis on immmutability of data. However,
+  Elixir is a functional programming language with an emphasis on immutability of data. However,
   when dealing with shared state or interacting with external systems, *change happens*.
 
   WaitForIt provides various ways of waiting for such changes to happen.
@@ -17,6 +17,11 @@ defmodule WaitForIt do
   concurrent or asynchronous activities to complete, it is also useful in any scenario where
   concurrent processes must coordinate their activity. Examples include asynchronous event
   handling, producer-consumer processes, and time-based activity.
+
+  This page doubles as the API reference and an introduction. If you are just getting started,
+  the task-focused guides walk through the most common scenarios: [Waiting in
+  tests](waiting_in_tests.html), [Polling vs signaling](polling_vs_signaling.html), [Composing
+  waits](composing_waits.html), [Recipes](recipes.html), and [Telemetry](telemetry.html).
 
   ## Quick start
 
@@ -180,13 +185,13 @@ defmodule WaitForIt do
 
   Waitable expressions are by their nature subject to change with repeated evaluations over time.
   Therefore, idempotent expressions are of little use in the context of waiting, since waiting
-  would either halt immediately (if the expression already saitisfies the waiting conditions)
+  would either halt immediately (if the expression already satisfies the waiting conditions)
   or never halt at all (if it does not satisfy the waiting conditions).
 
   For this reason, it is expected that the value produced by waitable expressions may change on
   each re-evaluation, and that it is possible for each re-evaluation to produce side-effects.
   It is important, however, that any side-effects that can occur during evaluation of the
-  expression are safe and predictable, since the expression may be evaluated an inderminate
+  expression are safe and predictable, since the expression may be evaluated an indeterminate
   number of times while waiting.
 
   ## Polling-based waiting
@@ -216,12 +221,12 @@ defmodule WaitForIt do
   (typically an atom or a tuple of atoms) that serves as the binding between the waiting
   conditions and the asynchronous code that can alter the outcome of those waiting conditions.
   When the `:signal` option is used, WaitForIt will automatically wait until a matching signal is
-  received and then re-evaluate waiting conditions. If the waiting conditions are saitisfied then
+  received and then re-evaluate waiting conditions. If the waiting conditions are satisfied then
   the wait is halted, if not then the wait continues until the next signal is received or a
   timeout occurs.
 
   By way of example, imagine a typical producer-consumer problem in which a consumer process waits
-  for items to appear in some buffer while a separate producer process occasionally place items in
+  for items to appear in some buffer while a separate producer process occasionally places items in
   the buffer. In this scenario, the consumer process might use the `wait/2` macro with the
   `:signal` option to wait until there are some items in the buffer and the producer process would
   use the `signal/1` function to tell the consumer that it might be time for it to check the
@@ -243,77 +248,42 @@ defmodule WaitForIt do
   indicates that waiters should re-evaluate their waiting conditions to determine if they should
   continue to wait or not.
 
+  See the [Polling vs signaling](polling_vs_signaling.html) guide for guidance on choosing between
+  the two modes.
+
   ## Telemetry
 
-  Every wait emits [`:telemetry`](https://hexdocs.pm/telemetry) events, so you can observe how
-  long waits take, how many evaluations they require, and how often they time out.
+  Every wait emits [`:telemetry`](https://hexdocs.pm/telemetry) events under the
+  `[:wait_for_it, :wait]` prefix — `:start`, `:stop`, and `:exception` — so you can observe how
+  long waits take, how many evaluations they require, and how often they time out. The `:stop`
+  event reports the wait `duration`, the number of `evaluations`, and whether the wait `:matched`
+  or hit a `:timeout`.
 
-    * `[:wait_for_it, :wait, :start]` - emitted when a wait begins.
-      * Measurements: `%{system_time, monotonic_time}`
-      * Metadata: `%{wait_type, timeout, interval, signal, env}`
-
-    * `[:wait_for_it, :wait, :stop]` - emitted when a wait finishes (whether the condition was
-      met or the wait timed out).
-      * Measurements: `%{duration, evaluations}` (`duration` is in native time units;
-        `evaluations` is the number of times the waitable expression was evaluated)
-      * Metadata: `%{wait_type, timeout, interval, signal, env, result, last_value}` where
-        `result` is `:matched` or `:timeout`
-
-    * `[:wait_for_it, :wait, :exception]` - emitted only if evaluating the waitable expression
-      raises, throws, or exits unexpectedly. A timeout is *not* an exception; it is reported as a
-      `:stop` event with `result: :timeout`.
-      * Measurements: `%{duration}`
-      * Metadata: `%{wait_type, timeout, interval, signal, env, kind, reason, stacktrace}`
-
-  See the [Telemetry guide](telemetry.html) for an example of attaching handlers.
+  See the [Telemetry guide](telemetry.html) for the full measurement and metadata reference, plus
+  examples of attaching handlers and wiring up `Telemetry.Metrics`.
 
   ## Using WaitForIt in tests
 
-  One common use case for waiting on the results of asynchronous operations is in tests,
-  particularly in integration or end-to-end tests. This section will present examples of using
-  the various forms of waiting in test code. All examples assume that the `WaitForIt` module has
-  been imported in the test module, such as follows:
+  Tests — especially integration and end-to-end tests — are one of the most common places to wait
+  on asynchronous work. The `WaitForIt.Test` module provides ExUnit assertions
+  (`assert_eventually/2`, `refute_eventually/2`, and `assert_always/2`) that wait and re-evaluate
+  and, on timeout, fail with a regular `ExUnit.AssertionError` that includes the source expression
+  and the last value seen:
 
-      defmodule MyTest do
+      defmodule MyApp.SomeTest do
         use ExUnit.Case
-        import WaitForIt
+        use WaitForIt.Test
+
+        test "the user is eventually confirmed" do
+          assert_eventually {:ok, %User{confirmed: true}} = Repo.fetch(User, user_id)
+        end
       end
 
-  The `wait/2` macro can be used directly in assertions, since it returns the truthy or falsy
-  value that the waitable expression evaluated to (i.e. a truthy value for successful waits or a
-  falsy value for timeouts). For example, to assert that a particular database record is
-  eventually inserted into the database can be as simple as:
+  The waiting macros described above can also be used directly in tests when you want their exact
+  return values or timeout semantics — `wait/2`, for example, returns its value and so drops
+  straight into an `assert`.
 
-      assert wait(Repo.get(User, user_id))
-
-  Alternatively, pattern-matching can be used in some cases to make stronger assertions, such as:
-
-      assert %User{first_name: "Elijah"} = wait(Repo.get(User, user_id), timeout: 1_000)
-
-  The `case_wait/3` macro offers greater flexibility in the sense that it allows for matching on
-  any one of a series of case clauses and also allows for the use of an `else` block if none of
-  the case clauses eventually match. For example, to assert that a particular database record is
-  eventually inserted and that it has particular values:
-
-      case_wait Repo.get(User, user_id), timeout: 1_000 do
-        %User{id: ^user_id} = user ->
-          assert user.first_name == "Elijah"
-          assert Date.compare(user.birth_date, ~D[2023-07-20]) == :eq
-      else
-        unexpected ->
-          flunk("Expected a User record for Elijah, got something else: #{inspect(unexpected)}")
-      end
-
-  Or to test if exactly one or two records are returned for a particular query, something like
-  the following can be used:
-
-      case_wait Repo.all(some_query), timeout: 2_000, frequency: 500 do
-        [only_thing] -> assert only_thing.id == 42
-        [thing1, thing2] -> assert thing1.id == 1 and thing2.id == 2
-      else
-        [] -> flunk("expected one or two things, got no things")
-        [_ | _] = things -> flunk("expected one or two things, got #{length(things)} things")
-      end
+  See the [Waiting in tests](waiting_in_tests.html) guide for a full walkthrough.
 
   ## A note on "catch-all" clauses
 
