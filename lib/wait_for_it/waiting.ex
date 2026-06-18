@@ -22,88 +22,85 @@ defmodule WaitForIt.Waiting do
     Keyword.merge(@default_wait_opts, user_specified_opts)
   end
 
-  def wait_loop(waitable, wait_opts, env) do
+  # A single, unified wait loop drives both polling-based and signal-based waiting.
+  #
+  # The total time budget is captured once as a monotonic deadline so that the timeout is
+  # immune to wall-clock adjustments (NTP steps, container migration, etc.). Each iteration
+  # evaluates the waitable; if it has not yet halted, control blocks until either the next
+  # evaluation is due (a polling tick or a received signal) or the deadline is reached.
+  defp wait_loop(waitable, wait_opts, env) do
     pre_wait(wait_opts[:pre_wait])
 
-    if wait_opts[:signal] do
-      signaling_wait_loop(waitable, wait_opts, env)
-    else
-      polling_wait_loop(waitable, wait_opts, env)
-    end
-  end
-
-  defp polling_wait_loop(waitable, wait_opts, env) do
-    # TODO: Idea - maybe we don't need a separate concept of polling-based waiting at all.
-    # Maybe polling-based waiting could be implemented as signal-based waiting where a signal is
-    # emitted by a periodic timer that is started at the beginning of the wait and stopped at the
-    # end, similar to how the "time bomb" works below. A unique signal name could be generated
-    # and used for each waiting operation.
-    time_bomb = start_time_bomb(self(), wait_opts[:timeout])
-    wait_for_tick = fn -> wait_for_tick(wait_opts[:frequency], time_bomb) end
-
-    try do
-      eval_loop(waitable, wait_opts, env, wait_for_tick)
-    after
-      stop_time_bomb(time_bomb)
-    end
-  end
-
-  defp signaling_wait_loop(waitable, wait_opts, env) do
     signal = wait_opts[:signal]
-    register_for_signal(signal, env)
-    wait_for_signal = fn -> wait_for_signal(signal, wait_opts[:timeout], now()) end
+    deadline = monotonic_now() + wait_opts[:timeout]
+
+    if signal, do: register_for_signal(signal, env)
 
     try do
-      eval_loop(waitable, wait_opts, env, wait_for_signal)
+      eval_loop(waitable, wait_opts, env, deadline)
     after
-      unregister_from_signal(signal)
+      if signal, do: unregister_from_signal(signal)
     end
   end
 
-  defp eval_loop(waitable, wait_opts, env, sleeper_fun) do
+  defp eval_loop(waitable, wait_opts, env, deadline) do
     case Waitable.evaluate(waitable, env) do
-      {:cont, value} ->
-        case sleeper_fun.() do
-          :loop ->
-            eval_loop(waitable, wait_opts, env, sleeper_fun)
-
-          {:timeout, timeout} ->
-            if wait_opts[:on_timeout] == :raise do
-              Waitable.Raise.raise_timeout_error(waitable, value, timeout, env)
-            else
-              Waitable.handle_timeout(waitable, value, env)
-            end
-        end
-
       {:halt, value} ->
         value
+
+      {:cont, value} ->
+        case wait_for_next_evaluation(wait_opts, deadline) do
+          :loop -> eval_loop(waitable, wait_opts, env, deadline)
+          :timeout -> on_timeout(waitable, value, wait_opts, env)
+        end
     end
+  end
+
+  defp on_timeout(waitable, last_value, wait_opts, env) do
+    if wait_opts[:on_timeout] == :raise do
+      Waitable.Raise.raise_timeout_error(waitable, last_value, wait_opts[:timeout], env)
+    else
+      Waitable.handle_timeout(waitable, last_value, env)
+    end
+  end
+
+  # Blocks until it is time to re-evaluate the waitable (`:loop`) or the deadline has passed
+  # (`:timeout`). Signal-based waiting blocks on the mailbox; polling-based waiting sleeps for
+  # one interval. In both cases the remaining time bounds the wait so the deadline is honored.
+  defp wait_for_next_evaluation(wait_opts, deadline) do
+    remaining = deadline - monotonic_now()
+
+    cond do
+      remaining <= 0 -> :timeout
+      wait_opts[:signal] -> wait_for_signal(wait_opts[:signal], remaining)
+      true -> wait_for_tick(wait_opts[:frequency], remaining)
+    end
+  end
+
+  defp wait_for_signal(signal, remaining) do
+    receive do
+      {:wait_for_it_signal, ^signal} -> :loop
+    after
+      remaining -> :timeout
+    end
+  end
+
+  # When at least one full interval remains, sleep one interval and re-evaluate. Otherwise sleep
+  # out the remaining time and report a timeout without a further evaluation.
+  defp wait_for_tick(interval, remaining) when interval < remaining do
+    Process.sleep(interval)
+    :loop
+  end
+
+  defp wait_for_tick(_interval, remaining) do
+    Process.sleep(remaining)
+    :timeout
   end
 
   defp pre_wait(0), do: :ok
   defp pre_wait(time), do: Process.sleep(time)
 
-  defp now, do: System.system_time(:millisecond)
-
-  defp start_time_bomb(waiting_pid, timeout) do
-    {:ok, time_bomb_pid} =
-      Task.start(fn ->
-        Process.sleep(timeout)
-        send(waiting_pid, {self(), timeout})
-      end)
-
-    time_bomb_pid
-  end
-
-  defp stop_time_bomb(time_bomb) when is_pid(time_bomb), do: Process.exit(time_bomb, :kill)
-
-  defp wait_for_tick(tick_time, time_bomb) when is_integer(tick_time) and is_pid(time_bomb) do
-    receive do
-      {^time_bomb, timeout} -> {:timeout, timeout}
-    after
-      tick_time -> :loop
-    end
-  end
+  defp monotonic_now, do: System.monotonic_time(:millisecond)
 
   defp register_for_signal(signal, env) do
     Registry.register(WaitForIt.SignalRegistry, signal, env)
@@ -111,16 +108,5 @@ defmodule WaitForIt.Waiting do
 
   defp unregister_from_signal(signal) do
     Registry.unregister(WaitForIt.SignalRegistry, signal)
-  end
-
-  defp wait_for_signal(signal, timeout, start_time) do
-    elapsed_time = now() - start_time
-    remaining_time = timeout - elapsed_time
-
-    receive do
-      {:wait_for_it_signal, ^signal} -> :loop
-    after
-      remaining_time -> {:timeout, timeout}
-    end
   end
 end
