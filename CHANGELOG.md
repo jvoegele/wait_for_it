@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Documented and promoted the `match_wait/3` construct, and added a `match_wait!/3` bang variant.
+- Added the `:interval` option as the preferred name for the polling interval. `:frequency`
+  continues to work as an alias and is slated for removal in a future major version.
+- Added guides (Waiting in tests, Polling vs signaling, Recipes) and a rewritten README.
+- Added GitHub Actions CI (test matrix, formatting, Credo, Dialyzer).
+
+### Changed
+- Rewrote the internal wait loop to use a single monotonic deadline, making timeouts immune to
+  wall-clock adjustments and unifying the polling and signaling code paths (the polling mode no
+  longer spawns a helper process per wait).
+- Deprecated the `WaitForIt.V1` macros; they now emit deprecation warnings pointing at the
+  current `WaitForIt` API and will be removed in a future major version.
+- Modernized dependencies (`ex_doc`, `stream_data`, `credo`).
+
 ## 2.1.0 - 2023--11-14
 ### Changed
 - Further improved documentation.

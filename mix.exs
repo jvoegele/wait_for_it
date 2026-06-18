@@ -53,7 +53,7 @@ defmodule WaitForIt.Mixfile do
   defp package do
     [
       name: :wait_for_it,
-      files: ["lib", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md"],
+      files: ["lib", "guides", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md"],
       maintainers: ["Jason Voegele"],
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url}
@@ -64,13 +64,21 @@ defmodule WaitForIt.Mixfile do
 
   defp docs do
     [
-      main: "WaitForIt",
+      main: "readme",
       extras: [
+        "README.md": [title: "Overview"],
+        "guides/waiting_in_tests.md": [title: "Waiting in tests"],
+        "guides/polling_vs_signaling.md": [title: "Polling vs signaling"],
+        "guides/recipes.md": [title: "Recipes"],
         "CHANGELOG.md": [title: "Changelog"],
         LICENSE: [title: "License"]
       ],
+      groups_for_extras: [
+        Guides: ~r{guides/.+\.md}
+      ],
       groups_for_docs: [
         wait: &(&1[:section] == :wait),
+        match_wait: &(&1[:section] == :match_wait),
         case_wait: &(&1[:section] == :case_wait),
         cond_wait: &(&1[:section] == :cond_wait),
         signaling: &(&1[:section] == :signal)
