@@ -12,12 +12,25 @@ defmodule WaitForIt.Waiting do
   ]
 
   def wait(waitable, wait_opts, env) do
-    wait_loop(waitable, merge_wait_opts(wait_opts), env)
+    wait_opts = merge_wait_opts(wait_opts)
+
+    case run(waitable, wait_opts, env) do
+      {:matched, value} -> value
+      {:timeout, last_value} -> on_timeout(waitable, last_value, wait_opts, env)
+    end
   end
 
   def wait!(waitable, wait_opts, env) do
-    wait_opts = merge_wait_opts(Keyword.put_new(wait_opts, :on_timeout, :raise))
-    wait_loop(waitable, wait_opts, env)
+    wait(waitable, Keyword.put_new(wait_opts, :on_timeout, :raise), env)
+  end
+
+  # Runs the wait loop and returns the structured outcome — `{:matched, value}` or
+  # `{:timeout, last_value}` — without applying any timeout handling. Used by the functional
+  # `WaitForIt.until/2` API, which maps the outcome to a tagged tuple of its own. Distinguishing
+  # the outcomes structurally (rather than by the value's shape) matters because a matched value
+  # may itself be any term, including a `{:timeout, _}` tuple.
+  def wait_outcome(waitable, wait_opts, env) do
+    run(waitable, merge_wait_opts(wait_opts), env)
   end
 
   defp merge_wait_opts(user_specified_opts) do
@@ -47,7 +60,7 @@ defmodule WaitForIt.Waiting do
   # immune to wall-clock adjustments (NTP steps, container migration, etc.). Each iteration
   # evaluates the waitable; if it has not yet halted, control blocks until either the next
   # evaluation is due (a polling tick or a received signal) or the deadline is reached.
-  defp wait_loop(waitable, wait_opts, env) do
+  defp run(waitable, wait_opts, env) do
     metadata = telemetry_metadata(waitable, wait_opts, env)
     start_time = System.monotonic_time()
 
@@ -83,10 +96,7 @@ defmodule WaitForIt.Waiting do
       Map.merge(metadata, %{result: result, last_value: last_value})
     )
 
-    case result do
-      :matched -> last_value
-      :timeout -> on_timeout(waitable, last_value, wait_opts, env)
-    end
+    {result, last_value}
   end
 
   # Returns `{:matched | :timeout, last_value, evaluation_count}`. A timeout is a normal outcome

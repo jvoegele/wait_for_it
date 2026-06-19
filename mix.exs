@@ -95,6 +95,7 @@ defmodule WaitForIt.Mixfile do
         case_wait: &(&1[:section] == :case_wait),
         cond_wait: &(&1[:section] == :cond_wait),
         with_wait: &(&1[:section] == :with_wait),
+        until: &(&1[:section] == :until),
         signaling: &(&1[:section] == :signal)
       ],
       filter_modules: fn module, _meta ->

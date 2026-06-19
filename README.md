@@ -115,6 +115,27 @@ else
 end
 ```
 
+#### until (functional API)
+
+The five forms above are macros, which is what gives them their `case`/`cond`/`with`-flavored
+syntax. When the condition is computed at runtime or built dynamically, the functional `until/2`
+is a better fit: it is the non-macro counterpart of `wait/2`, taking a zero-arity function that it
+re-invokes until it returns a truthy value.
+
+Unlike `wait/2`, which returns the bare truthy/falsy value, `until/2` returns a tagged result
+(`{:ok, value}` or `{:timeout, last_value}`) so that success and timeout are always unambiguous —
+the idiomatic shape for a functional API, where there is no native construct to mirror.
+
+```elixir
+case WaitForIt.until(fn -> Repo.get(Post, id) end, timeout: :timer.seconds(5)) do
+  {:ok, post} -> post
+  {:timeout, _} -> raise "post #{id} never appeared"
+end
+```
+
+It accepts the same options as the macro forms, and has an `until!/2` variant that raises
+`WaitForIt.TimeoutError` on timeout (returning the bare value on success).
+
 ## Options
 
 All forms of waiting accept the same options:

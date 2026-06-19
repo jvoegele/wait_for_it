@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- Added a functional (non-macro) waiting API, `WaitForIt.until/2` and `WaitForIt.until!/2`, for
+  conditions that are computed at runtime or passed in as a function. `until/2` returns a tagged
+  `{:ok, value}` or `{:timeout, last_value}` result; `until!/2` returns the bare value on success
+  and raises `WaitForIt.TimeoutError` on timeout.
+
 ### Changed
 - Clarified the "Timeout behavior" documentation to lead with the single underlying rule — on
   timeout, each waiting form behaves exactly as its native Elixir counterpart would on a final

@@ -470,6 +470,66 @@ defmodule WaitForIt do
     end
   end
 
+  @doc ~S"""
+  Wait until the given zero-arity function returns a truthy value.
+
+  This is the functional (non-macro) counterpart of `wait/2`. Where `wait/2` captures an
+  expression to re-evaluate, `until/2` re-invokes the function you supply — which makes it the
+  natural choice when the condition is computed at runtime, built dynamically, or passed in as a
+  function value.
+
+  Unlike `wait/2`, which returns the bare truthy/falsy value, `until/2` returns a tagged result so
+  that success and timeout are always unambiguous:
+
+    * `{:ok, value}` - the function returned the truthy `value` that ended the wait
+    * `{:timeout, last_value}` - the wait timed out; `last_value` is the last (falsy) value seen
+
+  ## Options
+
+  Accepts the same options as the other waiting forms. See the WaitForIt module documentation for
+  further discussion.
+
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:pre_wait` - wait for the given number of milliseconds before evaluating for the first time
+    * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function (alias: `:frequency`)
+    * `:signal` - disable polling and use a signal of the given name instead
+
+  ## Examples
+
+      case WaitForIt.until(fn -> Repo.get(Post, id) end, timeout: :timer.seconds(5)) do
+        {:ok, post} -> post
+        {:timeout, _} -> raise "post #{id} never appeared"
+      end
+
+  Because the condition is an ordinary value, it can be built up first and passed in:
+
+      ready? = fn -> Enum.all?(deps, &Service.healthy?/1) end
+      {:ok, _} = WaitForIt.until(ready?, timeout: :timer.seconds(30))
+  """
+  @doc section: :until
+  @spec until((-> term()), wait_opts()) :: {:ok, term()} | {:timeout, term()}
+  def until(fun, opts \\ []) when is_function(fun, 0) do
+    waitable = %WaitForIt.Waitable.FunctionWait{fun: fun}
+
+    case WaitForIt.Waiting.wait_outcome(waitable, opts, nil) do
+      {:matched, value} -> {:ok, value}
+      {:timeout, last_value} -> {:timeout, last_value}
+    end
+  end
+
+  @doc """
+  The same as `until/2` but raises a `WaitForIt.TimeoutError` on timeout.
+
+  On success it returns the truthy value directly (not wrapped in an `:ok` tuple), mirroring the
+  other bang variants.
+  """
+  @doc section: :until
+  @spec until!((-> term()), wait_opts()) :: term()
+  def until!(fun, opts \\ []) when is_function(fun, 0) do
+    waitable = %WaitForIt.Waitable.FunctionWait{fun: fun}
+    WaitForIt.Waiting.wait!(waitable, opts, nil)
+  end
+
   @doc """
   Send a signal to indicate that any processes waiting on the signal should re-evaluate their
   waiting conditions.
