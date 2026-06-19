@@ -138,17 +138,48 @@ exponential or custom backoff.
 
 ## Timeout behavior
 
-The forms of waiting differ in what happens when a wait times out. This table summarizes the
-behavior; the non-bang forms mirror the corresponding built-in Elixir construct, while every bang
-form raises a `WaitForIt.TimeoutError`.
+There is really only **one rule** to learn here:
 
-| Construct | On timeout (no `else`) | On timeout (with `else`) | Bang variant raises |
-| --------- | ---------------------- | ------------------------ | ------------------- |
-| `wait/2` | returns the last falsy value | _(no `else` clause)_ | `TimeoutError` |
-| `match_wait/3` | raises `MatchError` | _(no `else` clause)_ | `TimeoutError` |
-| `case_wait/3` | raises `CaseClauseError` | evaluates `else` | `TimeoutError` |
-| `cond_wait/2` | raises `CondClauseError` | evaluates `else` | `TimeoutError` |
-| `with_wait/3` | returns the last value | evaluates `else` (a `<~` timeout flows here) | `TimeoutError` (`<~` clauses) |
+> On timeout, each form behaves exactly as its built-in Elixir counterpart would on a final
+> evaluation in which nothing matched.
+
+That is the whole design. A `case_wait` that times out raises `CaseClauseError` for the same
+reason a `case` does when no clause matches; a `with_wait` that times out returns the last
+unmatched value for the same reason a `with` does; and so on. If you already know how the native
+construct behaves when its expression doesn't match, you already know how the waiting form behaves
+when it gives up — there is nothing WaitForIt-specific to memorize.
+
+Two consistent additions sit on top of that rule:
+
+- An optional **`else` clause** (on the forms whose native counterpart raises) turns a timeout into
+  a value instead of an error — the deliberate escape hatch when you'd rather handle "gave up" than
+  rescue it. It is the same idea as `with`'s `else` and `receive`'s `after`.
+- A **`!` variant** of every form (`wait!/2`, `match_wait!/3`, …) replaces whatever the non-bang
+  form would do with a single, uniform `WaitForIt.TimeoutError`. Reach for it when you want a
+  timeout-specific error regardless of which form you're using.
+
+The table below is reference, not new rules — each row is just the rule above made concrete:
+
+| Construct | Native counterpart | Counterpart when nothing matches | On timeout (no `else`) | With `else` | Bang variant |
+| --------- | ------------------ | -------------------------------- | ---------------------- | ----------- | ------------ |
+| `wait/2` | truthiness / polling `if` | (yields the falsy value) | returns the last falsy value | _(no `else`)_ | `TimeoutError` |
+| `match_wait/3` | `=` (match operator) | raises `MatchError` | raises `MatchError` | _(no `else`)_ | `TimeoutError` |
+| `case_wait/3` | `case` | raises `CaseClauseError` | raises `CaseClauseError` | evaluates `else` | `TimeoutError` |
+| `cond_wait/2` | `cond` | raises `CondClauseError` | raises `CondClauseError` | evaluates `else` | `TimeoutError` |
+| `with_wait/3` | `with` | returns the unmatched value | returns the last value | evaluates `else` | `TimeoutError` |
+
+The forms differ from one another only because their native counterparts differ — `=`, `case`,
+`cond`, and `with` themselves disagree about whether an unmatched value raises or is returned.
+WaitForIt deliberately inherits that behavior rather than papering over it, so that each form stays
+a faithful, waiting version of the construct you already reach for.
+
+> #### `with_wait` and the `<~` clause {: .info}
+>
+> `with_wait/3` is the one form with a wrinkle, because its `<~` (wait-for-match) clauses add
+> something `with` has no equivalent for. A `<~` clause that never matches before the timeout flows
+> to the `else` clause if one is present (otherwise the last value is returned), and `with_wait!/3`
+> raises `WaitForIt.TimeoutError` for it. Ordinary `<-` clauses behave exactly as they do in a
+> native `with`. See the [Composing waits](guides/composing_waits.md) guide for details.
 
 ## Waitable expressions and waiting conditions
 

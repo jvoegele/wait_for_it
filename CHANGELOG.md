@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Changed
+- Clarified the "Timeout behavior" documentation to lead with the single underlying rule — on
+  timeout, each waiting form behaves exactly as its native Elixir counterpart would on a final
+  non-matching evaluation — and demoted the behavior matrix to a reference table (now with a
+  native-counterpart column). Documentation only; no API or behavioral changes.
+
 ## 2.2.1 - 2026-06-18
 ### Changed
 - Restructured the documentation so the README is the single source for the `WaitForIt` module
