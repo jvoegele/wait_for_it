@@ -60,6 +60,10 @@ defmodule WaitForIt.Waiting do
   # immune to wall-clock adjustments (NTP steps, container migration, etc.). Each iteration
   # evaluates the waitable; if it has not yet halted, control blocks until either the next
   # evaluation is due (a polling tick or a received signal) or the deadline is reached.
+  #
+  # A `:timeout` of `:infinity` yields an `:infinity` deadline, which is never reached: the loop
+  # waits until the condition is met (or the process is killed), and never produces a `:timeout`
+  # outcome.
   defp run(waitable, wait_opts, env) do
     metadata = telemetry_metadata(waitable, wait_opts, env)
     start_time = System.monotonic_time()
@@ -76,8 +80,7 @@ defmodule WaitForIt.Waiting do
       try do
         pre_wait(wait_opts[:pre_wait])
         if signal, do: register_for_signal(signal, env)
-        deadline = monotonic_now() + wait_opts[:timeout]
-        eval_loop(waitable, wait_opts, env, deadline, 1)
+        eval_loop(waitable, wait_opts, env, deadline_for(wait_opts[:timeout]), 1)
       rescue
         exception ->
           emit_exception(metadata, start_time, :error, exception, __STACKTRACE__)
@@ -134,14 +137,22 @@ defmodule WaitForIt.Waiting do
   # (`:timeout`). Signal-based waiting blocks on the mailbox; polling-based waiting sleeps for
   # one interval. In both cases the remaining time bounds the wait so the deadline is honored.
   defp wait_for_next_evaluation(wait_opts, deadline, attempt) do
-    remaining = deadline - monotonic_now()
+    remaining = remaining_time(deadline)
 
     cond do
-      remaining <= 0 -> :timeout
+      remaining != :infinity and remaining <= 0 -> :timeout
       wait_opts[:signal] -> wait_for_signal(wait_opts[:signal], remaining)
       true -> wait_for_tick(interval_for(wait_opts[:interval], attempt), remaining)
     end
   end
+
+  # An `:infinity` timeout is carried through the loop as an `:infinity` deadline (and hence an
+  # `:infinity` remaining time), which every blocking primitive below already understands.
+  defp deadline_for(:infinity), do: :infinity
+  defp deadline_for(timeout), do: monotonic_now() + timeout
+
+  defp remaining_time(:infinity), do: :infinity
+  defp remaining_time(deadline), do: deadline - monotonic_now()
 
   # The `:interval` option is either a constant number of milliseconds or a 1-arity function of
   # the attempt number (see `WaitForIt.Backoff`), allowing for backoff strategies.
@@ -157,7 +168,13 @@ defmodule WaitForIt.Waiting do
   end
 
   # When at least one full interval remains, sleep one interval and re-evaluate. Otherwise sleep
-  # out the remaining time and report a timeout without a further evaluation.
+  # out the remaining time and report a timeout without a further evaluation. With no deadline
+  # there is always another interval to sleep.
+  defp wait_for_tick(interval, :infinity) do
+    Process.sleep(interval)
+    :loop
+  end
+
   defp wait_for_tick(interval, remaining) when interval < remaining do
     Process.sleep(interval)
     :loop

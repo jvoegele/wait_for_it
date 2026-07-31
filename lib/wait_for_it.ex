@@ -20,9 +20,9 @@ defmodule WaitForIt do
   Options that can be used to control waiting behavior.
   """
   @type wait_opt ::
-          {:timeout, non_neg_integer()}
-          | {:interval, non_neg_integer()}
-          | {:frequency, non_neg_integer()}
+          {:timeout, timeout()}
+          | {:interval, non_neg_integer() | WaitForIt.Backoff.interval_fun()}
+          | {:frequency, non_neg_integer() | WaitForIt.Backoff.interval_fun()}
           | {:pre_wait, non_neg_integer()}
           | {:signal, atom() | nil}
 
@@ -60,7 +60,7 @@ defmodule WaitForIt do
 
   See the WaitForIt module documentation for further discussion of these options.
 
-    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up, or `:infinity` to wait indefinitely
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
     * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function, at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
@@ -144,7 +144,7 @@ defmodule WaitForIt do
 
   See the WaitForIt module documentation for further discussion of these options.
 
-    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up, or `:infinity` to wait indefinitely
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
     * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function, at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
@@ -268,7 +268,7 @@ defmodule WaitForIt do
 
   See the WaitForIt module documentation for further discussion of these options.
 
-    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up, or `:infinity` to wait indefinitely
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
     * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function, at which to re-evaluate conditions (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead
@@ -350,7 +350,7 @@ defmodule WaitForIt do
 
   See the `WaitForIt` module documentation for further discussion of these options.
 
-    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up, or `:infinity` to wait indefinitely
     * `:pre_wait` - wait for the given number of milliseconds before evaluating conditions for the first time
     * `:interval` - the polling interval (in milliseconds) at which to re-evaluate conditions
     * `:signal` - disable polling and use a signal of the given name instead
@@ -489,7 +489,7 @@ defmodule WaitForIt do
   Accepts the same options as the other waiting forms. See the WaitForIt module documentation for
   further discussion.
 
-    * `:timeout` - the amount of time to wait (in milliseconds) before giving up
+    * `:timeout` - the amount of time to wait (in milliseconds) before giving up, or `:infinity` to wait indefinitely
     * `:pre_wait` - wait for the given number of milliseconds before evaluating for the first time
     * `:interval` - the polling interval in milliseconds, or a `WaitForIt.Backoff` function (alias: `:frequency`)
     * `:signal` - disable polling and use a signal of the given name instead

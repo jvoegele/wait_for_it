@@ -373,6 +373,47 @@ defmodule WaitForItTest do
     end
   end
 
+  describe ":timeout option" do
+    test "accepts :infinity and waits until the condition is met" do
+      assert wait(increment_counter() > 29, timeout: :infinity, interval: 1)
+      assert 30 == Process.get(:counter)
+    end
+
+    test ":infinity outlasts a wait that a finite timeout would abandon" do
+      # The same condition, reached only after many polling intervals: a short finite timeout
+      # gives up partway through, while :infinity sees it through.
+      refute wait(increment_counter() > 29, timeout: 5, interval: 1)
+      assert Process.get(:counter) < 30
+
+      Process.delete(:counter)
+
+      assert wait(increment_counter() > 29, timeout: :infinity, interval: 1)
+      assert 30 == Process.get(:counter)
+    end
+
+    test ":infinity works with signal-based waiting" do
+      {:ok, counter} = init_counter(0)
+      _task = increment_task(counter, max: 1000, signal: :counter_wait)
+
+      assert wait(get_counter(counter) > 99, signal: :counter_wait, timeout: :infinity) == true
+    end
+
+    test "a bang variant with :infinity never raises" do
+      assert wait!(increment_counter() > 4, timeout: :infinity, interval: 1)
+    end
+
+    test "an else clause is not evaluated when :infinity is given" do
+      result =
+        case_wait increment_counter(), timeout: :infinity, interval: 1 do
+          n when n > 4 -> {:matched, n}
+        else
+          _ -> :timed_out
+        end
+
+      assert {:matched, 5} == result
+    end
+  end
+
   describe "telemetry" do
     setup do
       handler_id = "wait-for-it-test-#{System.unique_integer([:positive])}"
@@ -408,6 +449,13 @@ defmodule WaitForItTest do
       assert stop_meta.result == :matched
       assert stop_meas.evaluations >= 1
       assert is_integer(stop_meas.duration)
+    end
+
+    test "reports an :infinity timeout in the metadata" do
+      assert wait(increment_counter() > 2, timeout: :infinity, interval: 1)
+
+      assert_received {:telemetry, [:wait_for_it, :wait, :stop], _meas,
+                       %{timeout: :infinity, result: :matched}}
     end
 
     test "emits a stop event with result: :timeout on timeout" do

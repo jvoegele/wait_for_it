@@ -142,7 +142,7 @@ All forms of waiting accept the same options:
 
 | Option | Default | Description |
 | ------ | ------- | ----------- |
-| `:timeout` | `5_000` | total time to wait, in milliseconds, before giving up |
+| `:timeout` | `5_000` | total time to wait, in milliseconds, before giving up (or `:infinity` to wait indefinitely) |
 | `:interval` | `100` | polling interval, in milliseconds, between re-evaluations (alias: `:frequency`) |
 | `:pre_wait` | `0` | delay before the first evaluation, in milliseconds |
 | `:signal` | — | disable polling and re-evaluate only when the named signal is received |
@@ -150,6 +150,15 @@ All forms of waiting accept the same options:
 See the **Polling-based waiting** and **Signal-based waiting** sections below for the `:interval`
 and `:signal` options. The `:interval` option may also be a `WaitForIt.Backoff` function for
 exponential or custom backoff.
+
+> #### Waiting indefinitely {: .info}
+>
+> `timeout: :infinity` waits until the condition is met, however long that takes. Because such a
+> wait can never time out, none of the timeout behavior applies: a `!` variant never raises, an
+> `else` clause never runs, and `until/2` never returns `{:timeout, last_value}`. The wait blocks
+> its process until the condition is met or the process dies, so reach for it only where something
+> else bounds the wait — a supervised process, a `Task` with its own timeout, or a caller that can
+> shut the process down.
 
 > #### `:frequency` is now `:interval` {: .info}
 >

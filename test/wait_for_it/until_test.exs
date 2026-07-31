@@ -32,6 +32,16 @@ defmodule WaitForIt.UntilTest do
       assert {:ok, 1} = WaitForIt.until(fn -> 1 end, pre_wait: 5)
     end
 
+    test "accepts timeout: :infinity and returns {:ok, value}" do
+      assert {:ok, 30} =
+               WaitForIt.until(fn -> if counter() >= 30, do: 30 end,
+                 timeout: :infinity,
+                 interval: 1
+               )
+
+      assert Process.get(:counter) == 30
+    end
+
     test "raises when given something other than a zero-arity function" do
       # `apply/3` keeps the deliberately-wrong arity opaque to the compile-time type checker.
       assert_raise FunctionClauseError, fn ->

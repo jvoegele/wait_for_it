@@ -52,6 +52,11 @@ receiving the signal the waiter re-evaluates its condition; if satisfied it stop
 keeps waiting for the next signal or the timeout. The `:timeout` option still bounds the total
 wait. The `:interval` option is ignored in signal mode.
 
+Signal mode is where `timeout: :infinity` is most at home: a long-lived consumer that should block
+on its mailbox until the producer signals, with no deadline of its own. It parks the process with
+no polling and no wakeups until a signal arrives. Use it only where something else can shut the
+process down — under a supervisor, say — since the wait itself will never end on its own.
+
 Signaling is the right choice when:
 
 - you control the code that changes the condition and can emit a signal from it,

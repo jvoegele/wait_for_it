@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- The `:timeout` option now accepts `:infinity`, for a wait that continues until its condition is
+  met rather than giving up after a fixed budget. Such a wait can never time out, so the `!`
+  variants never raise, `else` clauses never run, and `WaitForIt.until/2` never returns
+  `{:timeout, last_value}`.
+  [(Issue #6)](https://github.com/jvoegele/wait_for_it/issues/6)
+
+### Fixed
+- Corrected the `t:WaitForIt.wait_opt/0` typespec, which declared `:interval` (and its `:frequency`
+  alias) as an integer only, even though a `WaitForIt.Backoff` function has been accepted since
+  2.2.0.
+
 ## 2.3.0 - 2026-07-31
 ### Added
 - Added a functional (non-macro) waiting API, `WaitForIt.until/2` and `WaitForIt.until!/2`, for
