@@ -169,6 +169,86 @@ defmodule WaitForIt.WithWaitTest do
     end
   end
 
+  describe "telemetry context" do
+    setup do
+      handler_id = "with-wait-telemetry-#{System.unique_integer([:positive])}"
+      test_pid = self()
+
+      :telemetry.attach(
+        handler_id,
+        [:wait_for_it, :wait, :stop],
+        &__MODULE__.relay_telemetry/4,
+        test_pid
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+    end
+
+    def relay_telemetry(_event, measurements, metadata, test_pid) do
+      send(test_pid, {:telemetry, measurements, metadata})
+    end
+
+    test "a <~ clause is tagged with its with_wait context and clause index" do
+      result =
+        with_wait on(
+                    {:ok, a} <- ok(1),
+                    {:ok, b} <~ ok(2)
+                  ) do
+          {a, b}
+        end
+
+      assert result == {1, 2}
+
+      assert_received {:telemetry, _meas, metadata}
+      assert metadata.wait_type == :match_wait
+      assert metadata.wait_context == %{construct: :with_wait, clause: 1}
+    end
+
+    test "clause indexes count every clause in on(...), not just the <~ ones" do
+      result =
+        with_wait on(
+                    {:ok, a} <- ok(1),
+                    {:ok, b} <~ ok(2),
+                    {:ok, c} <~ ok(3)
+                  ) do
+          {a, b, c}
+        end
+
+      assert result == {1, 2, 3}
+
+      assert_received {:telemetry, _meas, %{wait_context: %{clause: 1}}}
+      assert_received {:telemetry, _meas, %{wait_context: %{clause: 2}}}
+    end
+
+    test "a clause that times out carries the context too" do
+      result =
+        with_wait on({:ok, _v} <~ pending()), timeout: 20, interval: 1 do
+          :matched
+        else
+          other -> {:timed_out, other}
+        end
+
+      assert result == {:timed_out, :pending}
+
+      assert_received {:telemetry, _meas,
+                       %{result: :timeout, wait_context: %{construct: :with_wait, clause: 0}}}
+    end
+
+    test "with_wait! clauses carry the context as well" do
+      assert with_wait!(on({:ok, v} <~ ok(7)), do: v) == 7
+
+      assert_received {:telemetry, _meas, %{wait_context: %{construct: :with_wait, clause: 0}}}
+    end
+
+    test "a standalone match_wait has no wait_context" do
+      assert match_wait({:ok, _v}, ok(5)) == {:ok, 5}
+
+      assert_received {:telemetry, _meas, metadata}
+      assert metadata.wait_type == :match_wait
+      assert metadata.wait_context == nil
+    end
+  end
+
   describe "with_wait/3 errors" do
     test "raises a helpful error when clauses are not wrapped in on(...)" do
       assert_raise ArgumentError, ~r/on\(/, fn ->

@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   variants never raise, `else` clauses never run, and `WaitForIt.until/2` never returns
   `{:timeout, last_value}`.
   [(Issue #6)](https://github.com/jvoegele/wait_for_it/issues/6)
+- Telemetry metadata now includes a `wait_context` key, which distinguishes a wait that was written
+  directly (`nil`) from one a construct desugared to. A `<~` clause of a `with_wait` reports
+  `%{construct: :with_wait, clause: index}`, so its events are no longer indistinguishable from a
+  standalone `match_wait` and can be attributed to a specific clause.
+  [(Issue #19)](https://github.com/jvoegele/wait_for_it/issues/19)
 
 ### Fixed
 - Corrected the `t:WaitForIt.wait_opt/0` typespec, which declared `:interval` (and its `:frequency`

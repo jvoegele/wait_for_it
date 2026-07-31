@@ -17,7 +17,11 @@ defmodule WaitForIt.WithWait do
   def build({:on, meta, clauses}, global_opts, blocks, mode) when is_list(clauses) do
     do_block = Keyword.fetch!(blocks, :do)
     else_block = Keyword.get(blocks, :else)
-    with_clauses = Enum.map(clauses, &compile_clause(&1, global_opts, mode))
+
+    with_clauses =
+      clauses
+      |> Enum.with_index()
+      |> Enum.map(fn {clause, index} -> compile_clause(clause, global_opts, mode, index) end)
 
     block_kw = [do: do_block] ++ if(else_block, do: [else: else_block], else: [])
     {:with, meta, with_clauses ++ [block_kw]}
@@ -33,16 +37,20 @@ defmodule WaitForIt.WithWait do
   end
 
   # A `<~` clause becomes `pattern <- WaitForIt.__wait_clause__(pattern, expr, opts)`.
-  defp compile_clause({:<~, meta, [pattern, rhs]}, global_opts, mode) do
+  defp compile_clause({:<~, meta, [pattern, rhs]}, global_opts, mode, index) do
     {expr, clause_opts} = split_rhs(rhs)
+
+    # `:wait_context` tags the wait's telemetry so a clause of a `with_wait` is distinguishable
+    # from a standalone `match_wait` (both are `wait_type: :match_wait`). It is a compile-time
+    # literal, so it costs nothing at runtime whether or not handlers are attached.
+    context = Macro.escape(%{construct: :with_wait, clause: index})
 
     opts =
       quote do
-        Keyword.put(
-          Keyword.merge(unquote(global_opts), unquote(clause_opts)),
-          :on_timeout,
-          unquote(mode)
-        )
+        unquote(global_opts)
+        |> Keyword.merge(unquote(clause_opts))
+        |> Keyword.put(:on_timeout, unquote(mode))
+        |> Keyword.put(:wait_context, unquote(context))
       end
 
     wait_call =
@@ -54,7 +62,7 @@ defmodule WaitForIt.WithWait do
   end
 
   # Every other clause (ordinary `<-`, bare expression, etc.) passes through to `with` unchanged.
-  defp compile_clause(clause, _global_opts, _mode), do: clause
+  defp compile_clause(clause, _global_opts, _mode, _index), do: clause
 
   # `pattern <~ {expr, opts}` carries per-clause options when the right-hand side is a 2-tuple
   # whose second element is a literal keyword list. Anything else is the waited-on expression

@@ -198,9 +198,13 @@ defmodule WaitForIt.Waiting do
     Registry.unregister(WaitForIt.SignalRegistry, signal)
   end
 
+  # `:wait_context` is set by constructs that desugar to another construct's waitable, so that
+  # handlers can tell them apart: a `with_wait` `<~` clause is a `match_wait` like any other, but
+  # carries `%{construct: :with_wait, clause: index}`. It is `nil` for a directly-written wait.
   defp telemetry_metadata(waitable, wait_opts, env) do
     %{
       wait_type: Waitable.wait_type(waitable),
+      wait_context: wait_opts[:wait_context],
       timeout: wait_opts[:timeout],
       interval: wait_opts[:interval],
       signal: wait_opts[:signal],

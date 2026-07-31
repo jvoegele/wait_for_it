@@ -13,7 +13,7 @@ WaitForIt emits a standard telemetry span under the `[:wait_for_it, :wait]` pref
 Emitted when a wait begins.
 
 - **Measurements:** `%{system_time, monotonic_time}`
-- **Metadata:** `%{wait_type, timeout, interval, signal, env}`
+- **Metadata:** `%{wait_type, wait_context, timeout, interval, signal, env}`
 
 ### `[:wait_for_it, :wait, :stop]`
 
@@ -22,7 +22,7 @@ Emitted when a wait finishes — whether the waiting condition was met or the wa
 - **Measurements:** `%{duration, evaluations}`
   - `duration` is in native time units (use `System.convert_time_unit/3` to convert).
   - `evaluations` is the number of times the waitable expression was evaluated.
-- **Metadata:** `%{wait_type, timeout, interval, signal, env, result, last_value}`
+- **Metadata:** `%{wait_type, wait_context, timeout, interval, signal, env, result, last_value}`
   - `result` is `:matched` (the condition was met) or `:timeout`.
 
 ### `[:wait_for_it, :wait, :exception]`
@@ -31,7 +31,47 @@ Emitted only if evaluating the waitable expression raises, throws, or exits unex
 timeout is **not** an exception: it is reported as a `:stop` event with `result: :timeout`.
 
 - **Measurements:** `%{duration}`
-- **Metadata:** `%{wait_type, timeout, interval, signal, env, kind, reason, stacktrace}`
+- **Metadata:** `%{wait_type, wait_context, timeout, interval, signal, env, kind, reason, stacktrace}`
+
+## Wait context
+
+`wait_type` names the *form* of waiting that ran, which is not always the form you wrote. A `<~`
+clause in a `with_wait` desugars to a `match_wait`, so its events arrive as
+`wait_type: :match_wait` — indistinguishable, on that key alone, from a `match_wait` you wrote
+yourself.
+
+The `wait_context` metadata tells the two apart:
+
+- `nil` for a wait written directly (`wait`, `match_wait`, `case_wait`, `cond_wait`, `until`).
+- `%{construct: :with_wait, clause: index}` for a `<~` clause of a `with_wait`/`with_wait!`, where
+  `index` is the zero-based position of the clause within `on(...)`, counting every clause.
+
+So for this pipeline:
+
+```elixir
+with_wait on(
+            {:ok, user} <- fetch_user(id),
+            {:ok, order} <~ latest_order(user),
+            {:ok, ship} <~ shipment(order)
+          ) do
+  {user, order, ship}
+end
+```
+
+the two waits report `%{construct: :with_wait, clause: 1}` and `%{construct: :with_wait, clause: 2}`
+respectively — the `<-` clause is not a wait and emits nothing, but it still occupies index 0, so
+the index always points at the clause as written.
+
+This makes it possible to chart a whole `with_wait` pipeline as a unit, or to find *which* clause
+is the slow one:
+
+```elixir
+def handle_event([:wait_for_it, :wait, :stop], meas, %{wait_context: %{clause: clause}} = meta, _) do
+  Logger.info("with_wait clause #{clause} #{meta.result} after #{meas.duration}")
+end
+
+def handle_event([:wait_for_it, :wait, :stop], _meas, _meta, _config), do: :ok
+```
 
 ## Attaching a handler
 

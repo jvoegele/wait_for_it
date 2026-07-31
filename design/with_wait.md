@@ -233,8 +233,11 @@ Each `<~` clause runs through `WaitForIt.Waiting.wait`, so it emits the standard
 `[:wait_for_it, :wait, :start | :stop | :exception]` events with `wait_type: :match_wait`. This
 gives per-clause observability for free.
 
-Possible future enhancement (not in v1): tag clause waits with a `:with_wait` context in metadata
-so they can be distinguished from standalone `match_wait`s. Noted, deferred.
+**Implemented (issue #19).** Clause waits also carry a `wait_context` metadata key,
+`%{construct: :with_wait, clause: index}`, so they can be distinguished from standalone
+`match_wait`s and attributed to a specific clause. The compiler emits it as a literal in the
+clause's options, so it costs nothing at runtime whether or not handlers are attached. `index`
+counts every clause in `on(...)`, not just the `<~` ones, so it points at the clause as written.
 
 ## 9. Errors and validation
 

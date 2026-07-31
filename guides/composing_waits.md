@@ -104,7 +104,10 @@ parentheses. If a wait is dominated by a single complex condition, `case_wait/3`
 ## Observability
 
 Each `<~` clause runs as its own wait, so it emits the standard
-`[:wait_for_it, :wait, :start | :stop | :exception]` telemetry events. See the
+`[:wait_for_it, :wait, :start | :stop | :exception]` telemetry events. Because a clause desugars
+to a `match_wait`, its events carry `wait_type: :match_wait`; the `wait_context` metadata
+(`%{construct: :with_wait, clause: index}`) is what identifies it as a clause of a pipeline and
+tells you which one. That is how you find the slow step in a long `with_wait`. See the
 [Telemetry guide](telemetry.md).
 
 ---
