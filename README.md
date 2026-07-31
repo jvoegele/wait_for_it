@@ -303,7 +303,7 @@ Add `wait_for_it` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:wait_for_it, "~> 2.2"}
+    {:wait_for_it, "~> 2.3"}
   ]
 end
 ```
