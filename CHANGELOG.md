@@ -17,6 +17,33 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   pattern will never match?"
   [(Issue #24)](https://github.com/jvoegele/wait_for_it/issues/24)
 
+### Changed
+- **Telemetry metadata `env` is now a trimmed map rather than the caller's whole `Macro.Env`**
+  ([Issue #22](https://github.com/jvoegele/wait_for_it/issues/22)). It carries exactly
+  `:context`, `:context_modules`, `:file`, `:function`, `:line`, and `:module` — the same six
+  fields `WaitForIt.TimeoutError` has always exposed. The two paths disagreed about what `env`
+  meant; now they share one definition and cannot drift apart again.
+
+  A full `__ENV__` measured **1019 words (~8 KB)** in a module with ordinary imports, of which
+  most is the calling module's import table (`:functions`, `:macros`, `:requires`) — it grows
+  with the caller's imports and is of no use to a handler. That term was embedded in the
+  caller's compiled module once per wait, copied into the signal registry's ETS on every
+  signal-based wait, and copied again by every handler that forwarded metadata off-process.
+
+  The trim happens at **macro expansion**, so the fat term is never emitted rather than being
+  discarded later. Measured on a module with three wait sites:
+
+  | | before | after |
+  |---|---|---|
+  | `env` term | 1019 words | 29 words |
+  | whole event metadata | 1039 words | 49 words |
+  | caller's compiled beam | 12,612 bytes | 3,360 bytes |
+
+  A handler reading anything outside those six keys needs updating; one reading `env.file` or
+  `env.line` does not. The value passed down internally stays a real `%Macro.Env{}` so that
+  `Macro.Env.stacktrace/1` still reraises a timed-out `match_wait`/`case_wait`/`cond_wait` at
+  the caller's location — byte-for-byte the stacktrace it produced before.
+
 ### Fixed
 - The test suite no longer emits "the following clause will never match" warnings on Elixir 1.20.
   These came from the suite's own stub helpers, not from the waiting macros: 1.20 infers an exact

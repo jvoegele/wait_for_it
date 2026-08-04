@@ -33,6 +33,42 @@ timeout is **not** an exception: it is reported as a `:stop` event with `result:
 - **Measurements:** `%{duration}`
 - **Metadata:** `%{wait_type, wait_context, timeout, interval, signal, env, kind, reason, stacktrace}`
 
+## The `env` metadata
+
+Every event carries `env`, the source location of the wait — a plain map with
+exactly these keys:
+
+| key | |
+|---|---|
+| `:module` | the module containing the wait |
+| `:function` | `{name, arity}`, or `nil` at module level |
+| `:file` | absolute path |
+| `:line` | line of the wait |
+| `:context` | `:match`, `:guard`, or `nil` |
+| `:context_modules` | modules being defined at that point |
+
+It is enough to attribute an event to a call site, which is what a handler needs
+it for:
+
+```elixir
+def handle_event([:wait_for_it, :wait, :stop], meas, %{env: env} = meta, _) do
+  Logger.info("#{meta.result} at #{env.file}:#{env.line} after #{meas.duration}")
+end
+```
+
+> #### This used to be the caller's whole `Macro.Env` {: .info}
+>
+> Before 2.5.0, `env` was the untrimmed `__ENV__` — roughly 1000 words (~8 KB),
+> almost all of it the calling module's import table (`:functions`, `:macros`,
+> `:requires`), which grows with the caller's imports and is of no use to a
+> handler. It was embedded in the caller's compiled module once per wait and
+> copied by every handler that forwarded metadata off-process.
+>
+> A handler reading anything outside the six keys above needs updating; one
+> reading `env.file`/`env.line` does not. The same six fields have always been
+> what `WaitForIt.TimeoutError` exposes — the telemetry path simply never applied
+> the same cut.
+
 ## Wait context
 
 `wait_type` names the *form* of waiting that ran, which is not always the form you wrote. A `<~`

@@ -90,7 +90,7 @@ defmodule WaitForIt do
       require WaitForIt.Waitable.BasicWait
 
       waitable = WaitForIt.Waitable.BasicWait.create(unquote(expression))
-      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -103,7 +103,7 @@ defmodule WaitForIt do
       require WaitForIt.Waitable.BasicWait
 
       waitable = WaitForIt.Waitable.BasicWait.create(unquote(expression))
-      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -210,7 +210,7 @@ defmodule WaitForIt do
           unquote(else_block)
         )
 
-      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -232,7 +232,7 @@ defmodule WaitForIt do
           unquote(else_block)
         )
 
-      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -304,7 +304,7 @@ defmodule WaitForIt do
           unquote(else_block)
         )
 
-      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -325,7 +325,7 @@ defmodule WaitForIt do
           unquote(else_block)
         )
 
-      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -374,7 +374,7 @@ defmodule WaitForIt do
       require WaitForIt.Waitable.MatchWait
 
       waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
-      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -387,7 +387,7 @@ defmodule WaitForIt do
       require WaitForIt.Waitable.MatchWait
 
       waitable = WaitForIt.Waitable.MatchWait.create(unquote(pattern), unquote(expression))
-      WaitForIt.Waiting.wait!(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait!(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 
@@ -466,7 +466,7 @@ defmodule WaitForIt do
       waitable =
         WaitForIt.Waitable.MatchWait.create(unquote(match_pattern), unquote(expression))
 
-      WaitForIt.Waiting.wait(waitable, unquote(opts), __ENV__)
+      WaitForIt.Waiting.wait(waitable, unquote(opts), unquote(WaitForIt.Env.escaped(__CALLER__)))
     end
   end
 

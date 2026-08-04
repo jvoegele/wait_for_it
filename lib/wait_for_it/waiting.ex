@@ -208,7 +208,7 @@ defmodule WaitForIt.Waiting do
       timeout: wait_opts[:timeout],
       interval: wait_opts[:interval],
       signal: wait_opts[:signal],
-      env: env
+      env: WaitForIt.Env.to_map(env)
     }
   end
 
