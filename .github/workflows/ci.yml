@@ -15,6 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # `mix.exs` declares `elixir: "~> 1.15"`, so 1.15 is the supported floor and
+      # the matrix spans it through the current release. The top of the range is
+      # what matters most here: Elixir's set-theoretic type checker keeps getting
+      # sharper, and a macro-heavy library is exactly where that surfaces new
+      # diagnostics — 1.20 inferring exact return types for local functions is
+      # what produced the "clause will never match" warnings this matrix now
+      # guards against.
+      #
+      # `lint: true` rides the newest entry so formatting and Credo run against
+      # current tooling rather than a version behind.
       matrix:
         include:
           - elixir: "1.15"
@@ -23,6 +33,10 @@ jobs:
             otp: "27"
           - elixir: "1.18"
             otp: "27"
+          - elixir: "1.19"
+            otp: "27"
+          - elixir: "1.20"
+            otp: "29"
             lint: true
     env:
       MIX_ENV: test
@@ -70,11 +84,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Matches `.tool-versions`, so Dialyzer analyses the same toolchain local
+      # development runs rather than trailing the test matrix by two releases.
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.18"
-          otp-version: "27"
+          elixir-version: "1.20"
+          otp-version: "29"
 
       - name: Restore deps and build cache
         uses: actions/cache@v4

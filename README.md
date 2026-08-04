@@ -29,8 +29,8 @@ To use WaitForIt, `require WaitForIt` or `import WaitForIt`.
 
 If you are just getting started, the task-focused guides walk through the most common scenarios:
 [Waiting in tests](guides/waiting_in_tests.md), [Polling vs signaling](guides/polling_vs_signaling.md),
-[Composing waits](guides/composing_waits.md), [Recipes](guides/recipes.md), and
-[Telemetry](guides/telemetry.md).
+[Composing waits](guides/composing_waits.md), [Recipes](guides/recipes.md),
+[Telemetry](guides/telemetry.md), and [Troubleshooting](guides/troubleshooting.md).
 
 ## The five forms of waiting
 
@@ -329,6 +329,8 @@ scenarios, and read well in order:
 3. [Composing waits](guides/composing_waits.md) — chaining several waits with `with_wait/3`.
 4. [Recipes](guides/recipes.md) — ready-made patterns for databases, processes, HTTP, and more.
 5. [Telemetry](guides/telemetry.md) — observing waits in production.
+6. [Troubleshooting](guides/troubleshooting.md) — compiler diagnostics you may hit, and what they
+   mean.
 
 ## License
 
