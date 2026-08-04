@@ -53,11 +53,9 @@ defmodule WaitForIt.TimeoutError do
     struct(__MODULE__, params)
   end
 
+  # Delegates so that this and the telemetry metadata cannot drift apart about what
+  # `env` means — they disagreed before, with telemetry carrying the untrimmed term.
   @doc false
-  @spec make_env(Macro.Env.t()) :: env()
-  def make_env(%Macro.Env{} = env),
-    do: Map.take(env, [:context, :context_modules, :file, :function, :line, :module])
-
-  @spec make_env(any()) :: nil
-  def make_env(_), do: nil
+  @spec make_env(Macro.Env.t() | nil) :: env() | nil
+  defdelegate make_env(env), to: WaitForIt.Env, as: :to_map
 end
