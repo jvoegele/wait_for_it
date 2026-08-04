@@ -12,9 +12,22 @@ defmodule WaitForIt.WithWaitTest do
 
   # Wrappers that return values the compiler cannot constant-fold, so static match/guard warnings
   # are not emitted for the waiting tests.
-  defp ok(value), do: {:ok, value}
-  defp err(reason), do: {:error, reason}
-  defp pending, do: :pending
+  #
+  # `opaque/1` is what makes that true. Elixir 1.20's type checker infers a return
+  # type for a local function, so `defp pending, do: :pending` has the exact type
+  # `:pending` — and a wait for `{:ok, _}` on it is then, correctly, a clause that
+  # can never match. These helpers want a *runtime* non-match to drive the timeout
+  # paths, not a type-level one, so they route through the process dictionary,
+  # which the checker cannot narrow. The value returned is unchanged.
+  #
+  # This is a fix to the fixtures, not a workaround for a library bug: see the
+  # "Why does the compiler say my pattern will never match?" section of the
+  # troubleshooting guide.
+  defp opaque(value), do: Process.get(:__wait_for_it_unset__, value)
+
+  defp ok(value), do: opaque({:ok, value})
+  defp err(reason), do: opaque({:error, reason})
+  defp pending, do: opaque(:pending)
 
   # Returns {:ok, n} once the counter reaches `threshold`, otherwise :pending.
   defp ready_at(threshold) do

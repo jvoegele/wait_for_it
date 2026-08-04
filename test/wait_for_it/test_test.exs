@@ -18,8 +18,11 @@ defmodule WaitForIt.TestTest do
   end
 
   # Returns a value the compiler cannot constant-fold, so match/guard checks against it are not
-  # flagged as statically determinable.
-  defp never, do: :never
+  # flagged as statically determinable. Routing through the process dictionary is what makes that
+  # true under Elixir 1.20's type checker, which otherwise infers the exact return type `:never`
+  # and (correctly) reports a wait for `{:ok, _}` on it as a clause that can never match. The
+  # value returned is unchanged; the test wants a runtime non-match, not a type-level one.
+  defp never, do: Process.get(:__wait_for_it_unset__, :never)
 
   describe "assert_eventually/2 (truthy form)" do
     test "passes once the expression becomes truthy" do

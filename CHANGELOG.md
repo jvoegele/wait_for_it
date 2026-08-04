@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Elixir 1.19 and 1.20 to the CI matrix, which now spans the declared floor (`~> 1.15`) through the
+  current release. The two most recent Elixir versions — the ones most adopters run — were
+  previously untested, and the set-theoretic type checker is exactly the kind of moving target a
+  macro-heavy library needs coverage against. The `lint` flag moved to the newest entry so
+  formatting and Credo run against current tooling, and the Dialyzer job now matches
+  `.tool-versions` instead of trailing the matrix by two releases.
+  [(Issue #23)](https://github.com/jvoegele/wait_for_it/issues/23)
+- A [Troubleshooting](guides/troubleshooting.md) guide, opening with "Why does the compiler say my
+  pattern will never match?"
+  [(Issue #24)](https://github.com/jvoegele/wait_for_it/issues/24)
+
+### Fixed
+- The test suite no longer emits "the following clause will never match" warnings on Elixir 1.20.
+  These came from the suite's own stub helpers, not from the waiting macros: 1.20 infers an exact
+  return type for a local function, so `defp pending, do: :pending` has the type `:pending`, and a
+  wait for `{:ok, _}` on it genuinely cannot match. The helpers wanted a *runtime* non-match to
+  drive the timeout paths, not a type-level one, so they now route through the process dictionary —
+  same value, no inferable type.
+
+  Characterised across waitable shapes before changing anything: the warning fires **only** when the
+  expression's inferred type is disjoint from the pattern. A union that includes the pattern, an
+  opaque value, a `@spec`'d `term()`, the `nil | struct` shape of `Repo.get/2`, and a tagged
+  `{:ok, _} | {:error, _}` union are all clean, as are `wait/2` and `case_wait/3`. So no realistic
+  waitable trips it, and when it does fire it is correct — waiting changes values over time, not
+  types, and an expression whose type cannot produce the pattern can only ever time out.
+
+  WaitForIt therefore does **not** suppress the diagnostic in its expansion. The mechanism that
+  produces the surprising warning is the same one that catches a genuinely impossible pattern in
+  user code; silencing it library-wide would trade a rare accurate warning for a permanent blind
+  spot. The guide explains the diagnosis and the fix instead.
+  [(Issue #24)](https://github.com/jvoegele/wait_for_it/issues/24)
+
 ## 2.4.0 - 2026-07-31
 ### Added
 - The `:timeout` option now accepts `:infinity`, for a wait that continues until its condition is

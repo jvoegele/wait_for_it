@@ -84,7 +84,8 @@ defmodule WaitForIt.Mixfile do
         "guides/polling_vs_signaling.md": [title: "Polling vs signaling"],
         "guides/composing_waits.md": [title: "Composing waits"],
         "guides/recipes.md": [title: "Recipes"],
-        "guides/telemetry.md": [title: "Telemetry"]
+        "guides/telemetry.md": [title: "Telemetry"],
+        "guides/troubleshooting.md": [title: "Troubleshooting"]
       ],
       groups_for_extras: [
         Guides: ~r{guides/.+\.md}
