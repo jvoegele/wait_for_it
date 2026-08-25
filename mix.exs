@@ -54,7 +54,18 @@ defmodule WaitForIt.Mixfile do
   defp package do
     [
       name: :wait_for_it,
-      files: ["lib", "guides", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md"],
+      # `usage-rules.md` is agent-facing guidance, consumed by `usage_rules`
+      # (https://hex.pm/packages/usage_rules). It must be listed here or it is absent
+      # from the tarball and `mix usage_rules.sync` finds nothing.
+      files: [
+        "lib",
+        "guides",
+        "usage-rules.md",
+        "mix.exs",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md"
+      ],
       maintainers: ["Jason Voegele"],
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url}
