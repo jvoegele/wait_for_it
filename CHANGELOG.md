@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.5.0 - 2026-08-25
 ### Added
 - Elixir 1.19 and 1.20 to the CI matrix, which now spans the declared floor (`~> 1.15`) through the
   current release. The two most recent Elixir versions — the ones most adopters run — were
@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - A [Troubleshooting](guides/troubleshooting.md) guide, opening with "Why does the compiler say my
   pattern will never match?"
   [(Issue #24)](https://github.com/jvoegele/wait_for_it/issues/24)
+- **`usage-rules.md`, shipped in the package** — WaitForIt's guidance condensed for AI coding
+  agents, in the layout [`usage_rules`](https://hex.pm/packages/usage_rules) syncs from. A
+  consumer can pull it into their `AGENTS.md` with `mix usage_rules.sync`, or read it directly at
+  `deps/wait_for_it/usage-rules.md`.
+
+  It leads with the one rule — on timeout each form behaves as its native counterpart would on a
+  final non-matching evaluation — and then the traps that are easy to get wrong and silent when
+  you do: a catch-all clause in `case_wait`/`cond_wait` disables the waiting entirely (measured:
+  it halts after one evaluation in 4 ms), waiting blocks the calling process and must not happen
+  inside a GenServer callback, signals are node-local, and `timeout: :infinity` removes all
+  timeout behaviour rather than merely extending it.
 
 ### Changed
 - **Telemetry metadata `env` is now a trimmed map rather than the caller's whole `Macro.Env`**
@@ -178,6 +189,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0] - 2017-08-28
 - Initial release supporting `wait`, `case_wait`, and `cond_wait` with either polling or condition variable signaling.
 
+[2.5.0]: https://github.com/jvoegele/wait_for_it/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/jvoegele/wait_for_it/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/jvoegele/wait_for_it/compare/2.2.1...2.3.0
 [2.2.1]: https://github.com/jvoegele/wait_for_it/compare/2.2.0...2.2.1
