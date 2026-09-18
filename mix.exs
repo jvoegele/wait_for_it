@@ -1,7 +1,7 @@
 defmodule WaitForIt.Mixfile do
   use Mix.Project
 
-  @version "2.5.0"
+  @version "2.6.0"
   @source_url "https://github.com/jvoegele/wait_for_it"
 
   def project do

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.6.0 - 2026-09-18
 ### Added
 - **The `WaitForIt.Test` assertions now tag their telemetry with the construct that issued the
   wait**, as `wait_context: %{construct: :assert_eventually | :refute_eventually | :assert_always}`
@@ -284,6 +284,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0] - 2017-08-28
 - Initial release supporting `wait`, `case_wait`, and `cond_wait` with either polling or condition variable signaling.
 
+[2.6.0]: https://github.com/jvoegele/wait_for_it/compare/2.5.0...2.6.0
 [2.5.0]: https://github.com/jvoegele/wait_for_it/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/jvoegele/wait_for_it/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/jvoegele/wait_for_it/compare/2.2.1...2.3.0

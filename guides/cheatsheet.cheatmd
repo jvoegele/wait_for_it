@@ -10,7 +10,7 @@ Every form, option, and default on one page. See the guides for the reasoning be
 ```elixir
 # mix.exs
 def deps do
-  [{:wait_for_it, "~> 2.5"}]
+  [{:wait_for_it, "~> 2.6"}]
 end
 ```
 

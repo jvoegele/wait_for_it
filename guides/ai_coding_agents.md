@@ -56,7 +56,7 @@ end
 
 defp deps do
   [
-    {:wait_for_it, "~> 2.5"},
+    {:wait_for_it, "~> 2.6"},
     {:usage_rules, "~> 1.2", only: [:dev]}
   ]
 end
