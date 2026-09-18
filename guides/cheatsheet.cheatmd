@@ -1,0 +1,329 @@
+# Cheatsheet
+
+Every form, option, and default on one page. See the guides for the reasoning behind any of it.
+
+## Setup
+{: .col-2}
+
+### Dependency
+
+```elixir
+# mix.exs
+def deps do
+  [{:wait_for_it, "~> 2.5"}]
+end
+```
+
+```elixir
+# .formatter.exs — keeps the macros parenthesis-free
+[import_deps: [:wait_for_it]]
+```
+
+### In a module
+
+```elixir
+import WaitForIt        # bare: wait(...)
+require WaitForIt       # qualified: WaitForIt.wait(...)
+```
+
+### In a test
+
+```elixir
+defmodule MyTest do
+  use ExUnit.Case
+  use WaitForIt.Test    # == import WaitForIt.Test
+end
+```
+
+## The five forms
+{: .col-2}
+
+### `wait/2` — until truthy
+
+```elixir
+if wait(File.exists?("data.csv"), timeout: 5_000) do
+  :ok
+end
+```
+
+Returns the truthy value, or the last falsy value on timeout.
+
+### `match_wait/3` — until a pattern matches
+
+```elixir
+{:ok, user} =
+  match_wait({:ok, %User{}}, Repo.fetch(User, id), timeout: 2_000)
+```
+
+Binds out of the pattern. Raises `MatchError` on timeout.
+
+> #### Never use a bare variable {: .warning}
+>
+> `match_wait(user, fetch(id))` matches on the first evaluation and hands
+> back whatever it saw — usually the `nil` you meant to wait out. Match a
+> shape, or add a guard: `match_wait(p when is_pid(p), whereis(id))`.
+
+### `case_wait/3` — until a clause matches
+
+```elixir
+case_wait Repo.reload(job).status, timeout: 30_000 do
+  :completed -> {:ok, job}
+  :failed -> {:error, :failed}
+else
+  status -> {:error, {:timeout, status}}
+end
+```
+
+`else` runs **only** on timeout. Raises `CaseClauseError` without it.
+
+### `cond_wait/2` — until any branch is truthy
+
+```elixir
+cond_wait timeout: 10_000 do
+  File.exists?("ready.flag") -> :by_flag
+  past_deadline?() -> :by_deadline
+else
+  :gave_up
+end
+```
+
+Raises `CondClauseError` on timeout without an `else`.
+
+### `with_wait/3` — several waits in a pipeline
+
+```elixir
+with_wait on(
+  {:ok, token} <- authenticate(user),                    # once
+  {:ok, acct} <~ {load_account(token), timeout: 2_000},  # waits
+  {:ok, bal} <~ fetch_balance(acct)                      # waits
+), interval: 50 do
+  {:ok, bal}
+else
+  other -> {:error, other}
+end
+```
+
+`<-` evaluates once; `<~` waits. A timed-out `<~` flows to `else` like
+any non-match.
+
+### `until/2` — the functional form
+
+```elixir
+case until(fn -> Repo.get(Post, id) end, timeout: 5_000) do
+  {:ok, post} -> post
+  {:timeout, _last} -> raise "never appeared"
+end
+```
+
+For conditions built at runtime. Returns a tagged result, unlike `wait/2`.
+
+## Options
+{: .col-2}
+
+### All forms take the same ones
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `:timeout` | `5_000` | total ms before giving up, or `:infinity` |
+| `:interval` | `100` | ms between evaluations, or a backoff function |
+| `:pre_wait` | `0` | ms to wait before the *first* evaluation |
+| `:signal` | — | block on a signal instead of polling |
+
+`:frequency` is a deprecated alias for `:interval`, slated for removal in a
+major release. Prefer `:interval`; if both are given, `:interval` wins.
+
+### Backoff
+
+```elixir
+wait(Api.ready?(),
+  timeout: :timer.seconds(30),
+  interval: WaitForIt.Backoff.exponential(start: 50, max: 1_000, jitter: 0.1))
+```
+
+`WaitForIt.Backoff.exponential/1` options:
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `:start` | `50` | delay for the first attempt, in ms |
+| `:max` | `2_000` | cap on any single delay |
+| `:factor` | `2` | multiplier per attempt |
+| `:jitter` | `0.0` | fraction 0.0–1.0; `0.1` varies each delay ±10% |
+
+`WaitForIt.Backoff.constant/1` also exists, for symmetry.
+
+Any 1-arity function of the attempt number (starting at `1`) works. The
+deadline still bounds the total wait.
+
+## Timeout behavior
+{: .col-2}
+
+### The one rule
+
+> On timeout, each form behaves exactly as its built-in Elixir counterpart
+> would on a final evaluation in which nothing matched.
+
+### What that means per form
+
+| Form | Native | On timeout (no `else`) | With `else` | Bang variant |
+| --- | --- | --- | --- | --- |
+| `wait/2` | truthiness | returns last falsy value | _(none)_ | `TimeoutError` |
+| `match_wait/3` | `=` | raises `MatchError` | _(none)_ | `TimeoutError` |
+| `case_wait/3` | `case` | raises `CaseClauseError` | runs `else` | `TimeoutError` |
+| `cond_wait/2` | `cond` | raises `CondClauseError` | runs `else` | `TimeoutError` |
+| `with_wait/3` | `with` | returns last value | runs `else` | `TimeoutError` |
+| `until/2` | — | `{:timeout, last_value}` | _(none)_ | `TimeoutError` |
+
+### Bang variants
+
+Every form has one: `wait!/2`, `match_wait!/3`, `case_wait!/3`,
+`cond_wait!/2`, `with_wait!/3`, `until!/2`. Each raises
+`WaitForIt.TimeoutError` — carrying the wait type, timeout, and last value —
+instead of whatever the non-bang form would do.
+
+### `timeout: :infinity`
+
+Never times out, so no timeout behavior applies: `!` variants never raise,
+`else` never runs, `until/2` never returns `{:timeout, _}`. Only use it where
+something else can stop the process.
+
+## Signaling
+{: .col-2}
+
+### Consumer
+
+```elixir
+wait(Buffer.count() >= 4, signal: :buffer_filled, timeout: :infinity)
+```
+
+Blocks on the mailbox; re-evaluates on each signal. `:interval` is ignored.
+
+### Producer
+
+```elixir
+Buffer.put(item)
+WaitForIt.signal(:buffer_filled)
+```
+
+A signal means "worth checking again", not "the condition now holds".
+
+### Choosing
+
+| | Polling | Signaling |
+| --- | --- | --- |
+| Coupling | none | producer must signal |
+| Latency | up to one `:interval` | immediate |
+| Wasted work | re-evaluates | none |
+| Best for | things you don't control | things you do |
+
+## Test assertions
+{: .col-2}
+
+### `assert_eventually/2`
+
+```elixir
+assert_eventually Repo.get(User, id).confirmed
+assert_eventually {:ok, user} = fetch_user(id), timeout: 2_000
+assert user.name == "Elijah"
+```
+
+Truthy form or `pattern = expression` form. Defaults: `timeout: 1_000`,
+`interval: 10`.
+
+### `refute_eventually/2`
+
+```elixir
+refute_eventually error_reported?()
+```
+
+Asserts it **never** becomes truthy. Always waits out the full window when it
+passes, so keep it short. Defaults: `timeout: 100`, `interval: 10`.
+
+> #### Not "eventually not" {: .warning}
+>
+> To wait for something to *become* false, use
+> `assert_eventually(not x)`.
+
+### `assert_always/2`
+
+```elixir
+assert_always circuit_closed?(), timeout: 500
+```
+
+Asserts it stays truthy for the whole window. Poll-based, so a blip between
+samples can be missed — tune `:interval`. Defaults: `timeout: 100`,
+`interval: 10`.
+
+## Telemetry
+{: .col-2}
+
+### Events
+
+All under the `[:wait_for_it, :wait]` prefix:
+
+| Event | When |
+| --- | --- |
+| `:start` | a wait begins |
+| `:stop` | it matches **or** times out |
+| `:exception` | the expression raised, threw, or exited |
+
+### Key metadata
+
+```elixir
+:telemetry.attach("waits", [:wait_for_it, :wait, :stop], &handle/4, nil)
+
+def handle(_event, %{duration: d, evaluations: n}, meta, _) do
+  %{wait_type: type, result: result, env: env} = meta
+end
+```
+
+`result` is `:matched` or `:timeout`. `env` carries the source location.
+
+> #### Passing assertions emit `result: :timeout` {: .warning}
+>
+> `refute_eventually` and `assert_always` succeed *by* timing out. Filter on
+> `wait_context.construct` before reporting timeouts as failures.
+
+## Traps
+{: .col-2}
+
+### Never wait inside a GenServer callback
+
+A wait is a loop in the *calling* process. Inside `handle_call/3` it blocks
+the whole server for the duration.
+
+### No catch-all clauses
+
+```elixir
+case_wait status() do
+  :done -> :ok
+  _ -> :pending    # ❌ matches immediately; never waits
+end
+```
+
+Use `else`, which runs only on timeout.
+
+### Bare variables never wait
+
+```elixir
+match_wait(pid, Process.whereis(name))          # ❌ returns nil at once
+match_wait(p when is_pid(p), Process.whereis(name))   # ✅
+```
+
+### Parenthesize guards on `<~`
+
+```elixir
+with_wait on((p when is_pid(p)) <~ whereis(id)) do
+```
+
+`when` binds looser than `<~`. Without the parens you get an
+`ArgumentError` naming the fix.
+
+### Side effects repeat
+
+The waitable expression is re-evaluated an indeterminate number of times.
+Whatever it does must be safe to do again.
+
+---
+
+**See also:** [Getting started](getting_started.md) · [Usage rules](usage-rules.md) ·
+the `WaitForIt` module reference.

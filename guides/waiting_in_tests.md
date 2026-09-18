@@ -110,4 +110,5 @@ evaluated before giving up.
 
 ---
 
+**Previous:** [Getting started](getting_started.md) ·
 **Next:** [Polling vs signaling](polling_vs_signaling.md)

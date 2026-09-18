@@ -25,12 +25,12 @@ that must wait for concurrent or asynchronous activity to complete, but it is ju
 anywhere concurrent processes coordinate their activity — asynchronous event handling,
 producer-consumer processes, and time-based activity.
 
-To use WaitForIt, `require WaitForIt` or `import WaitForIt`.
+The five waiting forms are macros, so `require WaitForIt` or `import WaitForIt` in any module
+that uses them.
 
-If you are just getting started, the task-focused guides walk through the most common scenarios:
-[Waiting in tests](guides/waiting_in_tests.md), [Polling vs signaling](guides/polling_vs_signaling.md),
-[Composing waits](guides/composing_waits.md), [Recipes](guides/recipes.md),
-[Telemetry](guides/telemetry.md), and [Troubleshooting](guides/troubleshooting.md).
+New to the library? [Getting started](https://hexdocs.pm/wait_for_it/getting_started.html) covers
+installation and goes from `mix deps.get` to your first wait, and your first test assertion,
+in a few minutes.
 
 ## The five forms of waiting
 
@@ -209,7 +209,8 @@ a faithful, waiting version of the construct you already reach for.
 > something `with` has no equivalent for. A `<~` clause that never matches before the timeout flows
 > to the `else` clause if one is present (otherwise the last value is returned), and `with_wait!/3`
 > raises `WaitForIt.TimeoutError` for it. Ordinary `<-` clauses behave exactly as they do in a
-> native `with`. See the [Composing waits](guides/composing_waits.md) guide for details.
+> native `with`. See the
+> [Composing waits](https://hexdocs.pm/wait_for_it/composing_waits.html) guide for details.
 
 ## Waitable expressions and waiting conditions
 
@@ -259,8 +260,8 @@ Both sides share the same signal name, which binds the producer to the consumer.
 mean the condition is now satisfied — only that waiters should re-evaluate. The wait halts when its
 condition is met, or continues until the next signal or the timeout.
 
-See the [Polling vs signaling](guides/polling_vs_signaling.md) guide for guidance on choosing
-between the two modes.
+See the [Polling vs signaling](https://hexdocs.pm/wait_for_it/polling_vs_signaling.html) guide
+for guidance on choosing between the two modes.
 
 ## Telemetry
 
@@ -270,30 +271,20 @@ waits take, how many evaluations they require, and how often they time out. The 
 reports the wait `duration`, the number of `evaluations`, and whether the wait `:matched` or hit a
 `:timeout`.
 
-See the [Telemetry](guides/telemetry.md) guide for the full measurement and metadata reference,
-plus examples of attaching handlers and wiring up `Telemetry.Metrics`.
+See the [Telemetry](https://hexdocs.pm/wait_for_it/telemetry.html) guide for the full measurement
+and metadata reference, plus examples of attaching handlers and wiring up `Telemetry.Metrics`.
 
 ## Using WaitForIt in tests
 
-Tests — especially integration and end-to-end tests — are one of the most common places to wait on
-asynchronous work. The `WaitForIt.Test` module provides ExUnit assertions (`assert_eventually/2`,
-`refute_eventually/2`, and `assert_always/2`) that wait and re-evaluate and, on timeout, fail with
-a regular `ExUnit.AssertionError` that includes the source expression and the last value seen:
+Tests are one of the most common places to wait on asynchronous work, and they get a dedicated
+module. `WaitForIt.Test` provides `assert_eventually/2`, `refute_eventually/2`, and
+`assert_always/2`, which wait and re-evaluate exactly as the forms above do but, on timeout, fail
+with a regular `ExUnit.AssertionError` carrying the source expression and the last value seen. The
+waiting forms themselves work in tests too, when you want their precise return values or timeout
+semantics.
 
-```elixir
-defmodule MyApp.SomeTest do
-  use ExUnit.Case
-  use WaitForIt.Test
-
-  test "the user is eventually confirmed" do
-    assert_eventually {:ok, %User{confirmed: true}} = Repo.fetch(User, user_id)
-  end
-end
-```
-
-The waiting macros can also be used directly in tests when you want their exact return values or
-timeout semantics — `wait/2`, for example, returns its value and so drops straight into an
-`assert`. See the [Waiting in tests](guides/waiting_in_tests.md) guide for a full walkthrough.
+See the [Waiting in tests](https://hexdocs.pm/wait_for_it/waiting_in_tests.html) guide for a full
+walkthrough.
 
 ## A note on "catch-all" clauses
 
@@ -317,20 +308,44 @@ def deps do
 end
 ```
 
-## Documentation
+Then run `mix deps.get`. WaitForIt's only dependency is `:telemetry`. Its application starts a
+small supervision tree used by signal-based waiting; polling needs nothing started.
 
-Full documentation is on [HexDocs](https://hexdocs.pm/wait_for_it). The guides cover common
-scenarios, and read well in order:
+The waiting macros read best without parentheses, and WaitForIt exports formatter rules that keep
+`mix format` from adding them. Add WaitForIt to `import_deps` in your `.formatter.exs`:
 
-1. [Waiting in tests](guides/waiting_in_tests.md) — ExUnit assertions and using the waiting macros
-   in tests.
-2. [Polling vs signaling](guides/polling_vs_signaling.md) — the two waiting modes and when to use
-   each.
-3. [Composing waits](guides/composing_waits.md) — chaining several waits with `with_wait/3`.
-4. [Recipes](guides/recipes.md) — ready-made patterns for databases, processes, HTTP, and more.
-5. [Telemetry](guides/telemetry.md) — observing waits in production.
-6. [Troubleshooting](guides/troubleshooting.md) — compiler diagnostics you may hit, and what they
-   mean.
+```elixir
+[
+  import_deps: [:wait_for_it],
+  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
+]
+```
+
+## Where to go from here
+
+Full documentation is on [HexDocs](https://hexdocs.pm/wait_for_it). The guides read well in
+order, and each one ends with a link to the next:
+
+  * **[Getting started](https://hexdocs.pm/wait_for_it/getting_started.html)** — installation
+    through to your first wait and your first test assertion. Start here.
+  * **[Waiting in tests](https://hexdocs.pm/wait_for_it/waiting_in_tests.html)** — the ExUnit
+    assertions, and using the waiting macros directly in tests.
+  * **[Polling vs signaling](https://hexdocs.pm/wait_for_it/polling_vs_signaling.html)** — the two
+    waiting modes and how to choose between them.
+  * **[Composing waits](https://hexdocs.pm/wait_for_it/composing_waits.html)** — chaining several
+    waits into one pipeline with `with_wait/3`.
+  * **[Recipes](https://hexdocs.pm/wait_for_it/recipes.html)** — ready-made patterns for
+    databases, processes, HTTP endpoints, and mailboxes.
+  * **[Telemetry](https://hexdocs.pm/wait_for_it/telemetry.html)** — observing waits in
+    production.
+  * **[Troubleshooting](https://hexdocs.pm/wait_for_it/troubleshooting.html)** — the compiler
+    diagnostic you are most likely to hit, and what it is telling you.
+  * **[WaitForIt and AI coding agents](https://hexdocs.pm/wait_for_it/ai_coding_agents.html)** —
+    getting the rules this package ships in front of your agent.
+  * **[Cheatsheet](https://hexdocs.pm/wait_for_it/cheatsheet.html)** — every form, option, and
+    default on one page.
+  * **[About](https://hexdocs.pm/wait_for_it/about.html)** — the ideas behind the library, and how
+    it got here.
 
 ## License
 

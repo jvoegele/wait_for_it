@@ -62,13 +62,20 @@ defmodule WaitForIt.Mixfile do
         "guides",
         "usage-rules.md",
         "mix.exs",
+        # Shipped so `import_deps: [:wait_for_it]` finds the `locals_without_parens` rules for the
+        # paren-free macro style the guides use; without it in the tarball the export block is
+        # invisible to everyone installing from Hex, and `mix format` re-parenthesises every wait.
+        ".formatter.exs",
         "README.md",
         "LICENSE",
         "CHANGELOG.md"
       ],
       maintainers: ["Jason Voegele"],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @source_url}
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/master/CHANGELOG.md"
+      }
     ]
   end
 
@@ -81,25 +88,58 @@ defmodule WaitForIt.Mixfile do
     WaitForIt.V1
   ]
 
+  @guides [
+    "guides/getting_started.md",
+    "guides/waiting_in_tests.md",
+    "guides/polling_vs_signaling.md",
+    "guides/composing_waits.md",
+    "guides/recipes.md",
+    "guides/telemetry.md",
+    "guides/troubleshooting.md",
+    "guides/ai_coding_agents.md"
+  ]
+
+  @reference [
+    "guides/cheatsheet.cheatmd",
+    # Agent-facing, but published here too: the README and the agents guide both link to it, and a
+    # reader browsing HexDocs should be able to see what their agent is being told.
+    "usage-rules.md"
+  ]
+
   defp docs do
     [
-      # The WaitForIt module page is the landing page; its moduledoc is the README (see
-      # `lib/wait_for_it.ex`), so there is no separate "Overview" extra to duplicate it.
-      main: "WaitForIt",
+      # Getting started is the landing page, so a new reader arrives at installation and a first
+      # wait rather than at the reference. The README remains the `WaitForIt` moduledoc (see
+      # `lib/wait_for_it.ex`), which is where the conceptual overview lives, so nothing duplicates.
+      # The README's own Installation and "Where to go from here" sections sit outside the
+      # moduledoc markers on purpose: setup and navigation belong to this landing page and the
+      # sidebar, not to the API reference for the module.
+      main: "getting_started",
       source_ref: "#{@version}",
       extras: [
-        # Front matter, then the guides ordered as a learning path.
-        "CHANGELOG.md": [title: "Changelog"],
-        LICENSE: [title: "License"],
+        # Guides, ordered as a learning path; each one links to the next.
+        "guides/getting_started.md": [title: "Getting started"],
         "guides/waiting_in_tests.md": [title: "Waiting in tests"],
         "guides/polling_vs_signaling.md": [title: "Polling vs signaling"],
         "guides/composing_waits.md": [title: "Composing waits"],
         "guides/recipes.md": [title: "Recipes"],
         "guides/telemetry.md": [title: "Telemetry"],
-        "guides/troubleshooting.md": [title: "Troubleshooting"]
+        "guides/troubleshooting.md": [title: "Troubleshooting"],
+        "guides/ai_coding_agents.md": [title: "WaitForIt and AI coding agents"],
+        # Reference is for lookup rather than reading, so it sits after the narrative path.
+        "guides/cheatsheet.cheatmd": [title: "Cheatsheet"],
+        "usage-rules.md": [title: "Usage rules"],
+        "guides/about.md": [title: "About"],
+        # Ungrouped, which is what puts these above the groups in the sidebar rather than
+        # in the middle of the reading path; ExDoc hoists ungrouped extras regardless of
+        # their position here.
+        "CHANGELOG.md": [title: "Changelog"],
+        LICENSE: [title: "License"]
       ],
       groups_for_extras: [
-        Guides: ~r{guides/.+\.md}
+        Guides: @guides,
+        Reference: @reference,
+        About: ["guides/about.md"]
       ],
       groups_for_docs: [
         wait: &(&1[:section] == :wait),

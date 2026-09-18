@@ -36,6 +36,35 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   false — a metric that gets cleaned up, a process that gets reaped — is
   `assert_eventually(not x)`.
 
+- **A [Getting started](guides/getting_started.md) guide, which is now the HexDocs landing page.**
+  Installation was the one thing the published documentation did not have: the `## Installation`
+  section sat *below* the `<!-- README END -->` marker, so it was excluded from the `WaitForIt`
+  moduledoc — which was the landing page. A reader arriving at hexdocs.pm/wait_for_it was shown the
+  five waiting forms and the timeout rules without ever being told the dependency line. The new
+  guide runs from `mix deps.get` through a first wait, choosing a form, the one timeout rule, and a
+  first test assertion. Installation stays out of the `WaitForIt` moduledoc, which is reference
+  material for readers who already have the dependency.
+- **A [Cheatsheet](guides/cheatsheet.cheatmd)**, collecting every form, option, default, telemetry
+  event and trap on one page, for lookup rather than reading.
+- **An [About](guides/about.md) guide** — the ideas the library is built on (borrowed syntax, the
+  one timeout rule, polling versus signaling) and how it got from the 2017 release to here.
+- **A [WaitForIt and AI coding agents](guides/ai_coding_agents.md) guide, and `usage-rules.md` is
+  now published on HexDocs.** The rules have shipped in the package since 2.5.0, but nothing
+  explained how to wire them into a project, and a reader could not see what their agent was being
+  told without digging into `deps/`. Both are fixed: the guide covers `usage_rules` setup and the
+  manual route, and the rules themselves are an extra under Reference.
+- **`.formatter.exs` now ships in the package.** It has always exported `locals_without_parens` for
+  all of the waiting macros, but it was not in the `:files` list, so the export block was invisible
+  to everyone installing from Hex: `import_deps: [:wait_for_it]` found nothing and `mix format`
+  re-parenthesised every wait in a downstream project.
+- A **Changelog** link in the hex.pm package metadata, alongside the GitHub link.
+
+### Changed
+- **The documentation is organised into Guides, Reference and About**, replacing a single
+  regex-matched Guides group, with the guides ordered as a reading path — Getting started, Waiting
+  in tests, Polling vs signaling, Composing waits, Recipes, Telemetry, Troubleshooting, AI coding
+  agents — and the Cheatsheet and usage rules kept out of that path, since they are for lookup.
+
 ### Fixed
 - **An unparenthesised guard on a `<~` clause now raises a `ArgumentError` naming the fix.**
   `when` binds looser than `<~`, so
@@ -57,6 +86,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   because `apply_jitter/2`'s `jitter <= 0.0` guard is false for an atom and the fallback clause
   multiplies by it. The `WaitForIt.Backoff` moduledoc was correct throughout; only the agent usage
   rules were wrong, which is the file coding agents are pointed at.
+
+- **Documentation links on the hex.pm package page went to raw Markdown rather than HexDocs.**
+  hex.pm renders the README with every *relative* link rewritten to the package tarball preview, so
+  "Waiting in tests" landed the reader on
+  `https://repo.hex.pm/preview/wait_for_it/2.5.0/guides/waiting_in_tests.md` — unrendered Markdown —
+  instead of the guide. Guide links in the README are now absolute HexDocs URLs, which hex.pm leaves
+  alone, and the `WaitForIt` moduledoc strips the prefix back off as it slices the README, so ExDoc
+  still resolves them within the version being browsed and still warns if an extra is missing.
+  [(Issue #31)](https://github.com/jvoegele/wait_for_it/issues/31)
+- **The guide-to-guide navigation chain dead-ended at Telemetry**, which closed with "That's the end
+  of the guides" even though Troubleshooting followed it in the sidebar — and Troubleshooting had no
+  navigation footer at all. Every guide now links to the next one.
 
 ## 2.5.0 - 2026-08-25
 ### Added

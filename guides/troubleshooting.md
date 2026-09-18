@@ -80,3 +80,8 @@ this. The same mechanism that produces the spurious-looking warning above is wha
 catches a genuinely impossible pattern in your own code — waiting forever for a
 shape the expression cannot return. Silencing it library-wide would trade a rare,
 accurate warning for a permanently blind spot, which is the worse deal.
+
+---
+
+**Previous:** [Telemetry](telemetry.md) ·
+**Next:** [WaitForIt and AI coding agents](ai_coding_agents.md)

@@ -2,6 +2,14 @@ defmodule WaitForIt do
   # The module documentation is the demarcated section of the README, kept as the single source
   # of truth so the two never drift. `@external_resource` recompiles this module when the README
   # changes.
+  #
+  # Guide links in the README are written as absolute HexDocs URLs because hex.pm renders the
+  # README with *relative* links rewritten to the raw-markdown tarball preview
+  # (https://repo.hex.pm/preview/...), which is not where a reader clicking "Waiting in tests"
+  # wants to land (issue #31). Stripping the prefix here turns each one back into a plain
+  # `waiting_in_tests.html` link, which ExDoc resolves within the version being browsed and
+  # warns about if the extra is missing — so the README serves hex.pm and GitHub, and the
+  # moduledoc serves HexDocs, from one source.
   @readme Path.expand("./README.md")
   @external_resource @readme
   @moduledoc @readme
@@ -10,6 +18,7 @@ defmodule WaitForIt do
              |> Enum.at(1)
              |> String.split("<!-- README END -->")
              |> List.first()
+             |> String.replace("https://hexdocs.pm/wait_for_it/", "")
 
   @typedoc """
   Type to represent an expression that can be waited on.
