@@ -117,6 +117,31 @@ Not just "waits longer". Because such a wait can never time out: a `!` variant n
 blocks until the condition is met or it dies. Reach for it only where something else bounds the
 wait — a supervised process, a `Task` with its own timeout, or a caller that can shut it down.
 
+### A bare variable pattern never waits
+
+`match_wait`, a `<~` clause, and `assert_eventually`'s `pattern = expression` form all test the
+pattern *before* binding it. A bare variable matches anything, so the wait halts on its first
+evaluation and hands back whatever it saw — usually the `nil` you were waiting for it to stop
+being:
+
+```elixir
+# ❌ halts immediately; `pid` is nil
+assert_eventually pid = Registry.whereis(:thing)
+
+# ✅ wait for truthiness, or guard the pattern
+pid = WaitForIt.wait!(Registry.whereis(:thing))
+pid = WaitForIt.match_wait!(p when is_pid(p), Registry.whereis(:thing))
+```
+
+This is the same mistake as a catch-all clause in `case_wait`, in the one place the compiler
+cannot warn about it.
+
+### `refute_eventually` means *never*, not "eventually not"
+
+`refute_eventually(x)` asserts that `x` never becomes truthy within the window. To wait for
+something to *become* false — a metric that gets cleaned up, a process that gets reaped — the
+assertion is `assert_eventually(not x)`.
+
 ### `with_wait` uses two different arrows
 
 ```elixir
@@ -173,7 +198,7 @@ Polling is the default: re-evaluate every `:interval` ms. `:interval` also accep
 function of the attempt number, which is how you back off against a struggling dependency:
 
 ```elixir
-WaitForIt.wait(Service.ready?(), interval: WaitForIt.Backoff.exponential(cap: 2_000, jitter: true))
+WaitForIt.wait(Service.ready?(), interval: WaitForIt.Backoff.exponential(start: 50, max: 2_000, jitter: 0.1))
 ```
 
 Signal-based waiting removes the polling loop entirely — a waiter blocks until it receives a

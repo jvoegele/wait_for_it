@@ -84,4 +84,51 @@ defmodule WaitForIt.TestTest do
       assert error.message =~ "became falsy"
     end
   end
+
+  # `refute_eventually` and `assert_always` *succeed* by timing out. Without a distinguishing tag a
+  # telemetry handler that reports on `result: :timeout` cannot tell a passing assertion from a
+  # wait that genuinely gave up, and every passing test looks like a failure.
+  describe "telemetry context" do
+    setup do
+      handler_id = "test-assertions-telemetry-#{System.unique_integer([:positive])}"
+      test_pid = self()
+
+      :telemetry.attach(
+        handler_id,
+        [:wait_for_it, :wait, :stop],
+        &__MODULE__.relay_telemetry/4,
+        test_pid
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+    end
+
+    def relay_telemetry(_event, measurements, metadata, test_pid) do
+      send(test_pid, {:telemetry, measurements, metadata})
+    end
+
+    test "assert_eventually tags its wait" do
+      assert_eventually(bump() >= 2, timeout: 100, interval: 1)
+
+      assert_received {:telemetry, _meas, metadata}
+      assert metadata.wait_context == %{construct: :assert_eventually}
+      assert metadata.result == :matched
+    end
+
+    test "refute_eventually tags its wait, so its passing timeout is identifiable" do
+      refute_eventually(bump() > 1_000, timeout: 20, interval: 1)
+
+      assert_received {:telemetry, _meas, metadata}
+      assert metadata.wait_context == %{construct: :refute_eventually}
+      assert metadata.result == :timeout
+    end
+
+    test "assert_always tags its wait, so its passing timeout is identifiable" do
+      assert_always(bump() > 0, timeout: 20, interval: 1)
+
+      assert_received {:telemetry, _meas, metadata}
+      assert metadata.wait_context == %{construct: :assert_always}
+      assert metadata.result == :timeout
+    end
+  end
 end

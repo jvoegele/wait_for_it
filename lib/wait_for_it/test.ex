@@ -121,7 +121,10 @@ defmodule WaitForIt.Test do
       outcome =
         try do
           {:became_truthy,
-           WaitForIt.wait!(unquote(expression), WaitForIt.Test.__opts__(unquote(opts), 100, 10))}
+           WaitForIt.wait!(
+             unquote(expression),
+             WaitForIt.Test.__opts__(unquote(opts), 100, 10, :refute_eventually)
+           )}
         rescue
           WaitForIt.TimeoutError -> :stayed_falsy
         end
@@ -159,7 +162,7 @@ defmodule WaitForIt.Test do
            WaitForIt.match_wait!(
              falsy when falsy in [false, nil],
              unquote(expression),
-             WaitForIt.Test.__opts__(unquote(opts), 100, 10)
+             WaitForIt.Test.__opts__(unquote(opts), 100, 10, :assert_always)
            )}
         rescue
           WaitForIt.TimeoutError -> :stayed_truthy
@@ -176,8 +179,15 @@ defmodule WaitForIt.Test do
   end
 
   @doc false
-  def __opts__(opts, default_timeout, default_interval) do
-    opts = Keyword.put_new(opts, :timeout, default_timeout)
+  # `construct` tags the wait's telemetry. It matters for `refute_eventually` and `assert_always`,
+  # whose *success* is a timeout: without it, a passing assertion is indistinguishable in
+  # `[:wait_for_it, :wait, :stop]` from a wait that genuinely gave up, and any handler that reports
+  # on timeouts drowns in false positives.
+  def __opts__(opts, default_timeout, default_interval, construct \\ :assert_eventually) do
+    opts =
+      opts
+      |> Keyword.put_new(:timeout, default_timeout)
+      |> Keyword.put_new(:wait_context, %{construct: construct})
 
     if Keyword.has_key?(opts, :interval) or Keyword.has_key?(opts, :frequency) do
       opts

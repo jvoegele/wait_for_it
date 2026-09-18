@@ -268,6 +268,20 @@ defmodule WaitForIt.WithWaitTest do
         Code.eval_string("import WaitForIt; with_wait foo do :x end")
       end
     end
+
+    # `when` binds looser than `<~`, so the unparenthesized form parses as a `<~` nested inside the
+    # guard. Without this check `with` reports it as several "undefined variable" errors that say
+    # nothing about the missing parentheses.
+    test "raises a helpful error when a guard on a <~ clause is not parenthesized" do
+      assert_raise ArgumentError, ~r/must be parenthesised/, fn ->
+        Code.eval_string("""
+        import WaitForIt
+        with_wait on(p when is_pid(p) <~ self()) do
+          p
+        end
+        """)
+      end
+    end
   end
 
   defp tagged(agent) do

@@ -61,8 +61,33 @@ defmodule WaitForIt.WithWait do
     {:<-, meta, [pattern, wait_call]}
   end
 
+  # `when` binds looser than `<~`, so an unparenthesised guard parses as `pattern when (guard <~ rhs)`
+  # — a `<~` nested inside the guard, which `with` then reports as a handful of "undefined variable"
+  # errors pointing at the pattern. Catch that shape and say what to write instead.
+  defp compile_clause({:when, _meta, [pattern, guard]} = clause, _global_opts, _mode, _index) do
+    if wait_clause?(guard) do
+      raise ArgumentError, """
+      a guard on a `<~` clause must be parenthesised, because `when` binds looser than `<~`.
+
+      Write:
+
+          (#{Macro.to_string(pattern)} when <guard>) <~ <expression>
+
+      Got:
+
+          #{Macro.to_string(clause)}
+      """
+    end
+
+    clause
+  end
+
   # Every other clause (ordinary `<-`, bare expression, etc.) passes through to `with` unchanged.
   defp compile_clause(clause, _global_opts, _mode, _index), do: clause
+
+  defp wait_clause?({:<~, _meta, [_pattern, _rhs]}), do: true
+  defp wait_clause?({_form, _meta, args}) when is_list(args), do: Enum.any?(args, &wait_clause?/1)
+  defp wait_clause?(_other), do: false
 
   # `pattern <~ {expr, opts}` carries per-clause options when the right-hand side is a 2-tuple
   # whose second element is a literal keyword list. Anything else is the waited-on expression
