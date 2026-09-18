@@ -76,11 +76,13 @@ clause in a `with_wait` desugars to a `match_wait`, so its events arrive as
 `wait_type: :match_wait` — indistinguishable, on that key alone, from a `match_wait` you wrote
 yourself.
 
-The `wait_context` metadata tells the two apart:
+The `wait_context` metadata tells them apart:
 
 - `nil` for a wait written directly (`wait`, `match_wait`, `case_wait`, `cond_wait`, `until`).
 - `%{construct: :with_wait, clause: index}` for a `<~` clause of a `with_wait`/`with_wait!`, where
   `index` is the zero-based position of the clause within `on(...)`, counting every clause.
+- `%{construct: :assert_eventually | :refute_eventually | :assert_always}` for the corresponding
+  `WaitForIt.Test` assertion.
 
 So for this pipeline:
 
@@ -108,6 +110,26 @@ end
 
 def handle_event([:wait_for_it, :wait, :stop], _meas, _meta, _config), do: :ok
 ```
+
+### A timeout is not always a failure
+
+`refute_eventually/2` and `assert_always/2` succeed *by* timing out: confirming that something
+never happens means waiting out the whole window, so a **passing** assertion emits
+`result: :timeout`. A handler that reports on timeouts — to find waits that are quietly giving up
+— must exclude them, or every passing assertion of those two looks like a failure:
+
+```elixir
+@expected_timeouts [%{construct: :refute_eventually}, %{construct: :assert_always}]
+
+def handle_event([:wait_for_it, :wait, :stop], _meas, meta, _config) do
+  if meta.result == :timeout and meta.wait_context not in @expected_timeouts do
+    Logger.warning("wait at #{meta.env.file}:#{meta.env.line} timed out")
+  end
+end
+```
+
+`assert_eventually/2` needs no such exclusion: a timeout there is a genuine failure and has already
+been reported as one.
 
 ## Attaching a handler
 

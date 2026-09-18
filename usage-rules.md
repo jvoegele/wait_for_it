@@ -246,6 +246,11 @@ Every wait emits `[:wait_for_it, :wait, :start | :stop | :exception]`. The `:sto
 the `duration`, the number of `evaluations`, and whether the wait `:matched` or hit a `:timeout`
 — which is how you find waits that are quietly timing out, or polling far more than they need to.
 
+Mind that `refute_eventually` and `assert_always` succeed *by* timing out, so a **passing**
+assertion of either reports `result: :timeout`. They carry
+`wait_context: %{construct: :refute_eventually | :assert_always}`; exclude those, or a handler that
+reports on timeouts flags every passing assertion.
+
 ## Deprecated
 
 `WaitForIt.V1` emits compile-time deprecation warnings and will be removed in 3.0. Do not write

@@ -25,6 +25,16 @@ defmodule WaitForIt.Test do
   All of them accept the same options as the other WaitForIt macros (`:timeout`, `:interval`,
   `:pre_wait`, `:signal`); see the `WaitForIt` module documentation. The defaults are tuned for
   tests and differ per assertion (noted on each).
+
+  ## Telemetry
+
+  Each assertion tags its wait with
+  `wait_context: %{construct: :assert_eventually | :refute_eventually | :assert_always}`.
+
+  This matters because `refute_eventually/2` and `assert_always/2` succeed *by* timing out — a
+  **passing** assertion of either emits `result: :timeout`. A handler that reports on timeouts
+  needs the tag to tell an intended timeout from a wait that genuinely gave up. See the
+  [Telemetry](telemetry.md) guide.
   """
 
   @doc """

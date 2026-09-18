@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- **The `WaitForIt.Test` assertions now tag their telemetry with the construct that issued the
+  wait**, as `wait_context: %{construct: :assert_eventually | :refute_eventually | :assert_always}`
+  — matching what `with_wait/3` has done for its `<~` clauses since 2.4.0.
+
+  `refute_eventually/2` and `assert_always/2` succeed *by* timing out: confirming a negative means
+  waiting out the whole window. Nothing in `[:wait_for_it, :wait, :stop]` distinguished that from a
+  wait that genuinely gave up, so a handler reporting on `result: :timeout` — the use the
+  Telemetry section of the README suggests — reported every passing assertion as a failure. In a
+  suite converted to the test assertions, an unfiltered handler produced 7 rows across two files,
+  6 of which were passing assertions and 1 a real signal; with the tag, 1 row.
+
+  Additive and backward compatible: a `:wait_context` passed explicitly still wins, and handlers
+  that ignore the key are unaffected. The [Telemetry](guides/telemetry.md) guide, the
+  `WaitForIt.Test` moduledoc and `usage-rules.md` all now spell out that a *passing*
+  `refute_eventually`/`assert_always` emits `result: :timeout`, and show the exclusion a
+  timeout-reporting handler needs.
+- Two traps in `usage-rules.md` that a large adoption hit repeatedly:
+
+  **A bare variable pattern never waits.** `match_wait/3`, a `<~` clause, and
+  `assert_eventually/2`'s `pattern = expression` form all test the pattern *before* binding it, and
+  a bare variable matches anything — so the wait halts on its first evaluation and hands back
+  whatever it saw, usually the `nil` it was meant to wait for the expression to stop being. It is
+  the same mistake as a catch-all clause in `case_wait/3`, in the one place the compiler cannot
+  warn about it. This bites hardest on the `whereis`-style functions that return `pid | nil`, which
+  is exactly where a `<~` clause or `match_wait` looks most natural.
+
+  **`refute_eventually/2` means *never*, not "eventually not".** Waiting for something to *become*
+  false — a metric that gets cleaned up, a process that gets reaped — is
+  `assert_eventually(not x)`.
+
+### Fixed
+- **An unparenthesised guard on a `<~` clause now raises a `ArgumentError` naming the fix.**
+  `when` binds looser than `<~`, so
+
+  ```elixir
+  with_wait on(p when is_pid(p) <~ whereis(id)) do
+  ```
+
+  parses as a `<~` nested inside the guard rather than a guarded pattern. `with/1` then reported it
+  as three separate "undefined variable p" errors — pointing at the pattern, the guard, and the
+  `do` block — none of which mention parentheses. `with_wait/3` now detects the shape at expansion
+  and says to write `(p when is_pid(p)) <~ …`.
+
+  Not an exotic case: a `<~` clause on a function returning `pid | nil` *needs* a guard, for the
+  bare-variable reason above.
+- **The `WaitForIt.Backoff` example in `usage-rules.md` did not work.** It read
+  `exponential(cap: 2_000, jitter: true)`: `:cap` is not an option — the option is `:max` — and was
+  silently ignored, while `jitter: true` raises `ArithmeticError` on the first computed delay,
+  because `apply_jitter/2`'s `jitter <= 0.0` guard is false for an atom and the fallback clause
+  multiplies by it. The `WaitForIt.Backoff` moduledoc was correct throughout; only the agent usage
+  rules were wrong, which is the file coding agents are pointed at.
+
 ## 2.5.0 - 2026-08-25
 ### Added
 - Elixir 1.19 and 1.20 to the CI matrix, which now spans the declared floor (`~> 1.15`) through the
